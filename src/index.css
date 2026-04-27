@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles from HTML */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.form-input-focus:focus {
+  border-bottom-color: #061b0e !important;
+  outline: none;
+}
+
+body {
+  background-color: #fff8f5;
+}
+
+/* Mobile Menu Toggle State */
+#mobile-menu:target {
+  display: flex;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+.bistro-backdrop {
+  background-image: linear-gradient(rgba(6, 27, 14, 0.6), rgba(6, 27, 14, 0.6)), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCueI_cb73gV3o5SHNofY71Gfkkr5YJ3pz2OZcSuxVnOGHwIFxmyfVpYazbFxQXQYn4Y6ckSx_Iubpe68yA3DUck5rYfgWqh9UDQgQj0sQaGGiBEU3-WXvM9MsZICvJilIChqtFnrYvpscvLCeHj_CzCIhszQ_sa24KEfo6_2E2vBMFqxFLD2gaTLvGpwvLZRs9YH-dnUKM2ZmnTDITe2O5IUFFUHd6cIjf0C94nbIrVGjhfBgUOFnB02JO7B-M9zoZtj3cr0GRHHk");
+  background-size: cover;
+  background-position: center;
+}
+
+.glass-panel {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 248, 245, 0.85);
+}
+
+.backdrop-blur-custom {
+  backdrop-filter: blur(8px);
+}
+
+.custom-shadow {
+  box-shadow: 0px 10px 30px rgba(27, 48, 34, 0.05);
+}
+
+.bistro-backdrop {
+  background-image: linear-gradient(rgba(6, 27, 14, 0.6), rgba(6, 27, 14, 0.6)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuCueI_cb73gV3o5SHNofY71Gfkkr5YJ3pz2OZcSuxVnOGHwIFxmyfVpYazbFxQXQYn4Y6ckSx_Iubpe68yA3DUck5rYfgWqh9UDQgQj0sQaGGiBEU3-WXvM9MsZICvJilIChqtFnrYvpscvLCeHj_CzCIhszQ_sa24KEfo6_2E2vBMFqxFLD2gaTLvGpwvLZRs9YH-dnUKM2ZmnTDITe2O5IUFFUHd6cIjf0C94nbIrVGjhfBgUOFnB02JO7B-M9zoZtj3cr0GRHHk);
+  background-size: cover;
+  background-position: center;
+}
+
+.glass-panel {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 248, 245, 0.85);
+}
