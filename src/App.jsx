@@ -1,8 +1,8 @@
-import DigitalBistroCategoryManagement from "./pages/DigitalBistroCategoryManagement";
+import DigitalBistroUserManagement from "./pages/DigitalBistroUserManagement";
 import "./index.css";
 
 function App() {
-  return <DigitalBistroCategoryManagement />;
+  return <DigitalBistroUserManagement />;
 }
 
 export default App;
