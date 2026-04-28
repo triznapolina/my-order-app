@@ -13,10 +13,13 @@
     "@popperjs/core": "^2.11.8",
     "@tailwindcss/postcss": "^4.2.4",
     "anxious": "^0.0.0-security",
+    "axios": "^1.15.2",
     "bootstrap": "^5.3.8",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.2"
   },
+  "proxy": "http://localhost:8080",
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@eslint/js": "^10.0.1",

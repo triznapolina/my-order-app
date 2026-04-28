@@ -1,6 +1,80 @@
-import React from 'react';
+import { useState } from 'react';
+
+import { authService } from '../apis/api';
 
 export default function DigitalBistroSignIn() {
+  const [emailError, setEmailError] = useState(false);
+  const [emailErrorMessage, setEmailErrorMessage] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordErrorMessage, setPasswordErrorMessage] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const form = e.target;
+    const email = form.email.value.trim();
+    const password = form.password.value;
+
+    if (!validateInputs(email, password)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const loginResponse = await authService.login({ email, password });
+
+      const accessToken = loginResponse?.data?.accessToken;
+      if (!accessToken) {
+        throw new Error('Access token missing from login response.');
+      }
+
+      localStorage.setItem('token', accessToken);
+
+      const roleResponse = await authService.extractRole(accessToken);
+      const roleData = roleResponse?.data;
+      const role = typeof roleData === 'string' ? roleData : roleData?.role || '';
+
+      if (role === 'ROLE_ADMIN') {
+        window.location.href = '/admin-orders';
+      } else {
+        window.location.href = '/user-info';
+      }
+    } catch (error) {
+      console.error('Ошибка авторизации или получения роли:', error);
+      const message = error?.response?.data?.message || 'Ошибка входа. Проверьте email и пароль.';
+      setLoginError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const validateInputs = (email, password) => {
+    let isValid = true;
+
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setEmailError(true);
+      setEmailErrorMessage('Неверный формат почты');
+      isValid = false;
+    } else {
+      setEmailError(false);
+      setEmailErrorMessage('');
+    }
+
+    if (!password || password.length < 6) {
+      setPasswordError(true);
+      setPasswordErrorMessage('Пароль должна содержать как минимум 6 символов');
+      isValid = false;
+    } else {
+      setPasswordError(false);
+      setPasswordErrorMessage('');
+    }
+
+    return isValid;
+  };
+
   return (
     <div className="bg-background text-on-background selection:bg-primary-fixed-dim selection:text-on-primary-fixed min-h-screen flex flex-col">
       <main className="flex-grow flex items-stretch">
@@ -22,7 +96,7 @@ export default function DigitalBistroSignIn() {
                 Savor the moment. Access your curated dining experiences and reservations.
               </p>
             </div>
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="relative">
                   <label className="font-label-sm text-label-sm text-outline mb-2 block uppercase" htmlFor="email">
@@ -36,13 +110,14 @@ export default function DigitalBistroSignIn() {
                     required
                     type="email"
                   />
+                  {emailError && <p className="text-red-500 text-sm mt-2">{emailErrorMessage}</p>}
                 </div>
                 <div className="relative">
                   <div className="flex justify-between items-center mb-2">
                     <label className="font-label-sm text-label-sm text-outline uppercase" htmlFor="password">
                       Password
                     </label>
-                    <a className="font-label-sm text-label-sm text-secondary hover:opacity-80 transition-opacity" href="#">
+                    <a className="font-label-sm text-label-sm text-secondary hover:opacity-80 transition-opacity" href="/reset-request">
                       Forgot Password?
                     </a>
                   </div>
@@ -54,46 +129,29 @@ export default function DigitalBistroSignIn() {
                     required
                     type="password"
                   />
+                  {passwordError && <p className="text-red-500 text-sm mt-2">{passwordErrorMessage}</p>}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
-                  id="remember"
-                  type="checkbox"
-                />
-                <label className="font-body-md text-body-md text-on-surface" htmlFor="remember">
-                  Remember me for 30 days
-                </label>
-              </div>
               <button
-                className="w-full bg-primary-container text-on-primary py-4 rounded-lg font-body-lg text-body-lg font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-300"
+                className="w-full bg-primary-container text-on-primary py-4 rounded-lg font-body-lg text-body-lg font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 type="submit"
+                disabled={isSubmitting}
               >
-                Sign In
+                {isSubmitting ? 'Signing In...' : 'Sign In'}
               </button>
+              {loginError && <p className="text-red-500 text-sm mt-2">{loginError}</p>}
             </form>
             <div className="relative py-4">
               <div aria-hidden="true" className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-surface-variant" />
               </div>
               <div className="relative flex justify-center text-label-sm uppercase">
-                <span className="bg-surface px-4 text-outline font-label-sm">Or continue with</span>
+                <span className="bg-surface px-4 text-outline font-label-sm">Or</span>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <button className="flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-surface-variant hover:bg-surface-container-low transition-colors active:scale-95" type="button">
-                <span className="material-symbols-outlined text-primary">account_circle</span>
-                <span className="font-label-sm text-label-sm text-primary uppercase">Google</span>
-              </button>
-              <button className="flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-surface-variant hover:bg-surface-container-low transition-colors active:scale-95" type="button">
-                <span className="material-symbols-outlined text-primary">ios</span>
-                <span className="font-label-sm text-label-sm text-primary uppercase">Apple</span>
-              </button>
             </div>
             <p className="text-center font-body-md text-body-md text-on-surface-variant">
               New to Earthy Gastronomy?{' '}
-              <a className="text-secondary font-bold hover:underline underline-offset-4" href="#">
+              <a className="text-secondary font-bold hover:underline underline-offset-4" href="/register">
                 Create an account
               </a>
             </p>
@@ -124,51 +182,12 @@ export default function DigitalBistroSignIn() {
               <span className="text-white/80 font-body-lg text-body-lg">The Digital Bistro Philosophy</span>
             </div>
           </div>
-          <div className="absolute top-16 right-16 custom-shadow bg-surface-container-low/90 backdrop-blur-custom p-6 rounded-xl border border-white/20 max-w-[280px]">
-            <div className="flex items-center gap-4 mb-4">
-              <img
-                alt="Dish Preview"
-                className="w-12 h-12 rounded-full object-cover"
-                data-alt="Top view of an artisan salad with seasonal berries and a light vinaigrette on a white ceramic plate."
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-oukUhY5BbuwT9A3DPXDX8IMaMELfLmHnICz6G4DhF3CVtQDoYzJZ5gI_AM3ZAG0kF68JkWyk7I-n5qmfRG6zuLETmDP7s9DCkPB6lDxIE2Ga67N5RYbFrhVxSeGZRgXbANK1N48H0-V0BBJTPg7p-dXGQiJmzJp4-AYEYTfqcFcOdr6WbeVoVYhXL_cbjEqhR7IQy1fVCEvY6YmcQoE6a6SF17gGk-oYJKNX7YDNFSUilEGjk0w8dW3fk1uzkUJyNT80oL1fyb0"
-              />
-              <div>
-                <p className="font-headline-md text-label-sm text-primary mb-1">Seasonal Harvest</p>
-                <p className="font-label-sm text-[10px] text-outline uppercase tracking-tighter">
-                  Chef's Special Recommendation
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-between items-end">
-              <span className="font-price-label text-price-label text-secondary">$24.00</span>
-              <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  star
-                </span>
-                <span className="font-label-sm text-label-sm text-on-surface">4.9</span>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
       <footer className="bg-stone-50 dark:bg-zinc-950 border-t border-stone-200 dark:border-white/10">
         <div className="flex flex-col md:flex-row justify-between items-center w-full px-8 py-12 max-w-7xl mx-auto gap-6">
           <div className="text-lg font-bold text-emerald-900 dark:text-emerald-50 font-epilogue tracking-widest uppercase">
             The Digital Bistro
-          </div>
-          <div className="flex flex-wrap justify-center gap-8">
-            <a className="text-stone-400 dark:text-stone-500 font-epilogue text-sm uppercase tracking-widest hover:text-amber-600 dark:hover:text-amber-400 transition-colors" href="#">
-              Privacy Policy
-            </a>
-            <a className="text-stone-400 dark:text-stone-500 font-epilogue text-sm uppercase tracking-widest hover:text-amber-600 dark:hover:text-amber-400 transition-colors" href="#">
-              Terms of Service
-            </a>
-            <a className="text-stone-400 dark:text-stone-500 font-epilogue text-sm uppercase tracking-widest hover:text-amber-600 dark:hover:text-amber-400 transition-colors" href="#">
-              Sustainability
-            </a>
-            <a className="text-stone-400 dark:text-stone-500 font-epilogue text-sm uppercase tracking-widest hover:text-amber-600 dark:hover:text-amber-400 transition-colors" href="#">
-              Contact
-            </a>
           </div>
           <div className="text-stone-400 dark:text-stone-500 font-epilogue text-sm uppercase tracking-widest text-center md:text-right">
             © 2024 The Digital Bistro. Crafted for the discerning palate.
