@@ -46,7 +46,7 @@ body {
 }
 
 .bistro-backdrop {
-  background-image: linear-gradient(rgba(6, 27, 14, 0.6), rgba(6, 27, 14, 0.6)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuCueI_cb73gV3o5SHNofY71Gfkkr5YJ3pz2OZcSuxVnOGHwIFxmyfVpYazbFxQXQYn4Y6ckSx_Iubpe68yA3DUck5rYfgWqh9UDQgQj0sQaGGiBEU3-WXvM9MsZICvJilIChqtFnrYvpscvLCeHj_CzCIhszQ_sa24KEfo6_2E2vBMFqxFLD2gaTLvGpwvLZRs9YH-dnUKM2ZmnTDITe2O5IUFFUHd6cIjf0C94nbIrVGjhfBgUOFnB02JO7B-M9zoZtj3cr0GRHHk);
+  background-image: linear-gradient(rgba(6, 27, 14, 0.6), rgba(6, 27, 14, 0.6)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuCueI_cb73gV3o5SHNofY71Gfkkr5YJ3pz2OZcSuxVnOGHwIFxmyfVpYazbFxQXQYn4Y6ckSx_Iubpe68yA3DUck5rYfgWqh9UDQgQj0sQaGGiBEU3-WXvM9MsZICvJilIChqtFnrVpscvLCeHj_CzCIhszQ_sa24KEfo6_2E2vBMFqxFLD2gaTLvGpwvLZRs9YH-dnUKM2ZmnTDITe2O5IUFFUHd6cIjf0C94nbIrVGjhfBgUOFnB02JO7B-M9zoZtj3cr0GRHHk);
   background-size: cover;
   background-position: center;
 }
@@ -54,4 +54,43 @@ body {
 .glass-panel {
   backdrop-filter: blur(12px);
   background: rgba(255, 248, 245, 0.85);
+}
+
+.bg-pattern {
+  background-image: radial-gradient(#fe7952 0.5px, transparent 0.5px);
+  background-size: 16px 16px;
+  opacity: 0.1;
+}
+
+#nav-drawer {
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+#nav-drawer.open {
+  transform: translateX(0);
+}
+
+#drawer-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
+}
+
+#drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c3c8c1;
+  border-radius: 10px;
 }
