@@ -19,7 +19,7 @@ export default function AddNewCard() {
       </nav>
       <div className="flex items-center space-x-4">
       <span className="material-symbols-outlined text-emerald-900">shopping_bag</span>
-      <span className="material-symbols-outlined text-emerald-900" style="font-variation-settings: 'FILL' 1;">person</span>
+      <span className="material-symbols-outlined text-emerald-900" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
       </div>
       </div>
       </header>
@@ -74,7 +74,7 @@ export default function AddNewCard() {
       <div className="flex justify-between items-start">
       <div className="flex flex-col">
       <span className="text-[10px] uppercase tracking-widest opacity-60 font-bold">Earthy Gastronomy Member</span>
-      <span className="material-symbols-outlined mt-xs text-3xl" style="font-variation-settings: 'FILL' 1;">eco</span>
+      <span className="material-symbols-outlined mt-xs text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
       </div>
       <span className="material-symbols-outlined text-4xl opacity-80">contactless</span>
       </div>

@@ -91,6 +91,7 @@ export default {
         "headline-md": ["Epilogue", "sans-serif"],
         "headline-lg": ["Epilogue", "sans-serif"],
         "price-label": ["Be Vietnam Pro", "sans-serif"],
+        epilogue: ["Epilogue", "sans-serif"],
       },
 
       fontSize: {

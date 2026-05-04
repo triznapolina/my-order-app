@@ -74,7 +74,7 @@ export default function PersonalInfoUser() {
       <div className="flex justify-between items-center">
       <label className="font-label-sm text-primary uppercase">Telephone (Primary)</label>
       <span className="bg-primary/10 text-primary-container px-2 py-0.5 rounded-full flex items-center gap-1">
-      <span className="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+      <span className="material-symbols-outlined text-[14px]"style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
       <span className="text-[10px] font-bold uppercase tracking-wider">Verified</span>
       </span>
       </div>
@@ -128,7 +128,7 @@ export default function PersonalInfoUser() {
       </div>
       {/* Active Tab: Profile/Account */}
       <div className="text-emerald-900 font-bold flex flex-col items-center gap-1 border-t-2 border-emerald-900 pt-2">
-      <span className="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+      <span className="material-symbols-outlined" data-icon="person" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
       <span className="font-label-sm text-[11px] uppercase tracking-widest">Profile</span>
       </div>
       </nav>
