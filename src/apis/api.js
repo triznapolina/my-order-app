@@ -42,8 +42,85 @@ export const orderService = {
 };
 
 export const foodService = {
-  getAllFood: () => api.get('/catalog/foods'),
-}
+  createFood: (food, image) => {
+    const formData = new FormData();
+
+    formData.append(
+      "food",
+      new Blob([JSON.stringify(food)], { type: "application/json" })
+    );
+
+    if (image) {
+      formData.append("image", image);
+    }
+
+    return api.post("/catalog/foods", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  updateFood: (foodId, food, image) => {
+    if (image) {
+      const formData = new FormData();
+
+      formData.append(
+        "food",
+        new Blob([JSON.stringify(food)], { type: "application/json" })
+      );
+
+      formData.append("image", image);
+
+      return api.put(`/catalog/foods/${foodId}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    } else {
+      return api.put(`/foods/${foodId}`, food);
+    }
+  },
+
+  deleteFood: (foodId) =>
+    api.delete(`/catalog/foods/${foodId}`),
+
+  deactivateFood: (id, active) =>
+    api.patch(`/catalog/foods/${id}/deactivate`, null, {
+      params: { active },
+    }),
+
+  activateFood: (id, active) =>
+    api.patch(`/catalog/foods/${id}/activate`, null, {
+      params: { active },
+    }),
+
+  getFoodById: (id) =>
+    api.get(`/catalog/foods/${id}`),
+
+  getAllFoods: (page, size) =>
+  api.get('/catalog/foods/all', {
+    params: { page, size },
+  }),
+
+  getByCategory: (categoryId) =>
+    api.get(`/catalog/foods/category/${categoryId}`),
+
+  searchByName: (name) =>
+    api.get("/catalog/foods/search", {
+      params: { name },
+    }),
+
+  getByPriceRange: (minRange, maxRange) =>
+    api.get("/catalog/foods/price", {
+      params: { minRange, maxRange },
+    }),
+
+  getImage: (filename) =>
+    api.get(`/catalog/images/${filename}`, {
+      responseType: "blob",
+    }),
+};
 
 export const categoryService = {
   create: (data) => api.post('/food-category', data),
@@ -54,6 +131,7 @@ export const categoryService = {
     params: { page, size },
   }),
   delete: (id) => api.delete(`/food-category/${id}`),
+  getId: (data) => api.get('/food-category', data)
 };
 
 export const restaurantService = {
