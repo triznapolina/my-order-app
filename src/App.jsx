@@ -51,7 +51,8 @@ function App() {
         <Route path="/login" element={<DigitalBistroSignIn />} />
         
         <Route path="/client-catalog" element={<ClientCatalogManagement />} />
-        <Route path="/created-order-details" element={<CreatedOrderDetails />} />
+        
+        <Route path="/created-order-details/:id" element={<CreatedOrderDetails />} />
         <Route path="/personal-info-user" element={<PersonalInfoUser />} />
         <Route path="/add-new-card" element={<AddNewCard />} />
         <Route path="/user-profile" element={<Profile />} />

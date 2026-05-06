@@ -1,9 +1,92 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from "react-router-dom";
+import { orderService, cardService, userService } from "../apis/api";
+
+
+import AddNewCard from "./AddNewCard";
 
 export default function Profile() {
   useEffect(() => {
     document.title = 'Account - The Digital Bistro';
   }, []);
+
+
+const [user, setUser] = useState(null);
+
+const parseJwt = (token) => {
+  return JSON.parse(atob(token.split(".")[1]));
+};
+
+const [cards, setCards] = useState([]);
+const [orders, setOrders] = useState([]);
+const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+
+
+useEffect(() => {
+  const loadData = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const payload = parseJwt(token);
+    const userId = payload.id;
+
+    try {
+      const userRes = await userService.getInfoById(userId);
+      setUser(userRes.data);
+    } catch (e) {
+      console.error("USER ERROR", e);
+    }
+
+    try {
+      const ordersRes = await orderService.getByClientId(userId);
+      setOrders(ordersRes.data);
+    } catch (e) {
+      console.error("ORDERS ERROR", e);
+    }
+
+    try {
+      const cardsRes = await cardService.getByClientId(userId);
+      setCards(cardsRes.data);
+    } catch (e) {
+      console.error("CARDS ERROR", e);
+    }
+  };
+
+  loadData();
+}, []);
+
+const navigate = useNavigate();
+
+const openOrderModal = (orderId) => {
+  // например через router
+  navigate(`/any-order-details/${orderId}`);
+};
+
+const openEditModal = () => {
+  navigate("/personal-info-user");
+};
+
+const openAddCard = () => {
+  navigate("/add-new-card");
+};
+
+const deleteCard = async (cardId) => {
+  try {
+    await cardService.delete(cardId);
+    setCards(prev => prev.filter(c => c.id !== cardId));
+  } catch (e) {
+    console.error("DELETE ERROR", e);
+  }
+};
+
+const loadCards = async (userId) => {
+  try {
+    const res = await cardService.getByClientId(userId);
+    setCards(res.data);
+  } catch (e) {
+    console.error("LOAD CARDS ERROR", e);
+  }
+};
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-md">
@@ -31,74 +114,47 @@ export default function Profile() {
       <aside className="md:w-1/3 space-y-8">
       <div className="bg-white p-8 rounded-lg shadow-[0px_10px_30px_rgba(27,48,34,0.05)] text-center">
       <div className="relative w-32 h-32 mx-auto mb-6">
-      <img className="w-full h-full object-cover rounded-full ring-4 ring-surface-container" data-alt="professional headshot of a middle-aged man with short dark hair and a groomed beard wearing a casual linen shirt in warm natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkB-EFBETR7UmyWfJul3d_oQGU8dmYE1fe2CeZkFZoVsE4cpiHf1SWtjZVjsLldCyGagcZ2FaMpzuiSMooPKF7i31D1fK3fNjQHzqMS9pPxEGceo-Vul3rkvza4wG15AIf0lZuYYwrlF6Ec_Zf44PgvCobR3LFkfpzrfy98Lclquze46zxpy0KWL1HAHqp203hmQ6MzmNMA40493qVDJdc55kHDGQjszeAPpAo_bSgDK7WTJp_kkAalW1jrCAbptQxxM56MTSAuRk"  />
-      <div className="absolute bottom-1 right-1 bg-primary-container text-on-primary-container p-1.5 rounded-full border-2 border-white shadow-sm">
-      <span className="material-symbols-outlined text-[16px]" data-icon="verified" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+      
       </div>
-      </div>
-      <h2 className="font-headline-lg text-primary mb-1"  >Julian Thorne</h2>
+      <h2 className="font-headline-lg text-primary mb-1" >{user?.fullName || "No name"}</h2>
       <div className="grid grid-cols-2 gap-4 border-t border-surface-variant pt-6 mt-4">
-      <div className="text-left">
-      <span className="text-label-sm text-on-surface-variant uppercase block mb-1"  >Credit Balance</span>
-      <span className="font-price-label text-primary"  >$245.50</span>
-      </div>
-      <div className="text-left">
-      <span className="text-label-sm text-on-surface-variant uppercase block mb-1"  >Loyalty Points</span>
-      <span className="font-price-label text-secondary"  >1,280</span>
+      
       </div>
       </div>
-      </div>
-      <nav className="space-y-2">
-      <a className="flex items-center gap-3 px-6 py-4 bg-primary text-white rounded-lg font-medium transition-all duration-200" href="#"  >
-      <span className="material-symbols-outlined" data-icon="person"  >person</span>
-                              Profile &amp; Security
-                          </a>
-      <a className="flex items-center gap-3 px-6 py-4 text-on-surface hover:bg-white hover:shadow-sm rounded-lg font-medium transition-all duration-200" href="#"  >
-      <span className="material-symbols-outlined" data-icon="restaurant_menu"  >restaurant_menu</span>
-                              Order History
-                          </a>
-      <a className="flex items-center gap-3 px-6 py-4 text-on-surface hover:bg-white hover:shadow-sm rounded-lg font-medium transition-all duration-200" href="#"  >
-      <span className="material-symbols-outlined" data-icon="payments"  >payments</span>
-                              Payment Methods
-                          </a>
-      <a className="flex items-center gap-3 px-6 py-4 text-on-surface hover:bg-white hover:shadow-sm rounded-lg font-medium transition-all duration-200" href="#"  >
-      <span className="material-symbols-outlined" data-icon="notifications"  >notifications</span>
-                              Preferences
-                          </a>
-      </nav>
+      
       </aside>
       <div className="md:w-2/3 space-y-12">
       <section>
       <div className="flex items-center justify-between mb-6">
       <h3 className="font-headline-md text-primary"  >Personal Details</h3>
-      <button className="text-secondary font-semibold hover:underline decoration-2 underline-offset-4"  >Edit Details</button>
+      <button className="text-secondary font-semibold hover:underline decoration-2 underline-offset-4" onClick={openEditModal}  >Edit Details</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-8 rounded-lg shadow-[0px_10px_30px_rgba(27,48,34,0.05)]">
       <div className="space-y-1">
       <label className="text-label-sm text-on-surface-variant uppercase"  >Full Name</label>
-      <p className="font-body-lg text-on-surface font-medium"  >Julian Thorne</p>
+      <p className="font-body-lg text-on-surface font-medium"  >{user?.fullName || "No name"}</p>
       </div>
       <div className="space-y-1">
       <label className="text-label-sm text-on-surface-variant uppercase"  >Email Address</label>
-      <p className="font-body-lg text-on-surface font-medium"  >j.thorne@premium-life.com</p>
+      <p className="font-body-lg text-on-surface font-medium"  >{user?.email || "No email"}</p>
       </div>
       <div className="space-y-1">
       <label className="text-label-sm text-on-surface-variant uppercase"  >Telephone (Primary)</label>
       <div className="flex items-center gap-2">
-      <p className="font-body-lg text-on-surface font-medium"  >+1 (555) 892-4410</p>
+      <p className="font-body-lg text-on-surface font-medium"  >{user?.phone || "No phone"}</p>
       <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"  >Verified</span>
       </div>
       </div>
       <div className="space-y-1">
       <label className="text-label-sm text-on-surface-variant uppercase"  >Default Delivery Address</label>
-      <p className="font-body-lg text-on-surface font-medium"  >1280 Highland Avenue, Ste 402, LA</p>
+      <p className="font-body-lg text-on-surface font-medium"  >{user?.address || "No address"}</p>
       </div>
       </div>
       </section>
       <section>
       <div className="flex items-center justify-between mb-6">
       <h3 className="font-headline-md text-primary"  >Order History</h3>
-      <a className="text-secondary font-semibold hover:underline decoration-2 underline-offset-4" href="#"  >View All</a>
+      
       </div>
       <div className="bg-white rounded-lg shadow-[0px_10px_30px_rgba(27,48,34,0.05)] overflow-hidden">
       <div className="overflow-x-auto">
@@ -113,140 +169,94 @@ export default function Profile() {
       </tr>
       </thead>
       <tbody className="divide-y divide-surface-variant">
-      <tr className="hover:bg-surface-bright transition-colors">
-      <td className="px-8 py-6 font-medium text-primary"  >GH-99281</td>
-      <td className="px-8 py-6 text-on-surface-variant"  >Oct 24, 2023</td>
-      <td className="px-8 py-6"  >
-      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                                                  Delivered
-                                              </td>
-      <td className="px-8 py-6 font-price-label text-sm"  >$84.20</td>
-      <td className="px-8 py-6 text-right"  >
-      <button className="text-secondary font-semibold"  >Details</button>
+  {orders.map((order) => (
+    <tr
+      key={order.id}
+      className="hover:bg-surface-bright transition-colors"
+    >
+      <td className="px-8 py-6 font-medium text-primary">
+        {order.id}
       </td>
-      </tr>
-      <tr className="hover:bg-surface-bright transition-colors">
-      <td className="px-8 py-6 font-medium text-primary"  >GH-98102</td>
-      <td className="px-8 py-6 text-on-surface-variant"  >Oct 12, 2023</td>
-      <td className="px-8 py-6"  >
-      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                                                  Delivered
-                                              </td>
-      <td className="px-8 py-6 font-price-label text-sm"  >$112.50</td>
-      <td className="px-8 py-6 text-right"  >
-      <button className="text-secondary font-semibold"  >Details</button>
+
+      <td className="px-8 py-6 text-on-surface-variant">
+        {new Date(order.createdAt).toLocaleDateString()}
       </td>
-      </tr>
-      </tbody>
+
+      <td className="px-8 py-6">
+        <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+        {order.isCompleted ? "Completed" : "In Progress"}
+      </td>
+
+      <td className="px-8 py-6 font-price-label text-sm">
+        ${order.totalPrice || 0}
+      </td>
+
+      <td className="px-8 py-6 text-right">
+        <button
+          onClick={() => openOrderModal(order.id)}
+          className="text-secondary font-semibold"
+        >
+          Details
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
       </table>
       </div>
       </div>
       </section>
-      <section className="bg-primary-container text-white p-8 rounded-lg shadow-xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 p-8 opacity-10">
-      <span className="material-symbols-outlined text-9xl" data-icon="receipt_long"  >receipt_long</span>
-      </div>
-      <div className="relative z-10">
-      <div className="flex items-center gap-3 mb-8">
-      <span className="material-symbols-outlined text-on-primary-container" data-icon="info"  >info</span>
-      <h3 className="font-headline-md"  >Active Order Details: #GH-99281</h3>
-      </div>
-      <div className="flex flex-col lg:flex-row gap-12">
-      <div className="flex-1 space-y-4">
-      <div className="flex justify-between items-center pb-4 border-b border-on-primary-container/20">
-      <div className="flex items-center gap-4">
-      <div className="w-12 h-12 bg-on-primary-container/10 rounded-lg flex items-center justify-center"  >1x</div>
-      <div>
-      <p className="font-medium"  >Heirloom Quinoa Bowl</p>
-      <p className="text-sm text-on-primary-container"  >Extra avocado, No cilantro</p>
-      </div>
-      </div>
-      <span className="font-price-label text-sm"  >$28.00</span>
-      </div>
-      <div className="flex justify-between items-center pb-4 border-b border-on-primary-container/20">
-      <div className="flex items-center gap-4">
-      <div className="w-12 h-12 bg-on-primary-container/10 rounded-lg flex items-center justify-center"  >1x</div>
-      <div>
-      <p className="font-medium"  >Wild Mushroom Truffle Pizza</p>
-      <p className="text-sm text-on-primary-container"  >Thin crust, Artisanal goat cheese</p>
-      </div>
-      </div>
-      <span className="font-price-label text-sm"  >$42.00</span>
-      </div>
-      <div className="flex justify-between items-center pb-4 border-b border-on-primary-container/20">
-      <div className="flex items-center gap-4">
-      <div className="w-12 h-12 bg-on-primary-container/10 rounded-lg flex items-center justify-center"  >2x</div>
-      <div>
-      <p className="font-medium"  >Sparkling Mineral Water</p>
-      <p className="text-sm text-on-primary-container"  >750ml, Chilled</p>
-      </div>
-      </div>
-      <span className="font-price-label text-sm"  >$14.20</span>
-      </div>
-      </div>
-      <div className="lg:w-72 bg-white/5 p-6 rounded-lg backdrop-blur-sm border border-white/10">
-      <div className="space-y-3 mb-6">
-      <div className="flex justify-between text-sm">
-      <span className="text-on-primary-container"  >Subtotal</span>
-      <span   >$84.20</span>
-      </div>
-      <div className="flex justify-between text-sm">
-      <span className="text-on-primary-container"  >Delivery Fee</span>
-      <span className="text-secondary-fixed"  >FREE</span>
-      </div>
-      <div className="flex justify-between text-sm">
-      <span className="text-on-primary-container"  >Tax (8%)</span>
-      <span   >$6.74</span>
-      </div>
-      </div>
-      <div className="pt-4 border-t border-white/20 flex justify-between items-end">
-      <span className="font-bold uppercase tracking-widest text-xs"  >Total Amount</span>
-      <span className="text-2xl font-bold font-price-label"  >$90.94</span>
-      </div>
-      <button className="w-full mt-6 bg-secondary text-white py-3 rounded-lg font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"  >
-      <span className="material-symbols-outlined text-[18px]" data-icon="refresh"  >refresh</span>
-                                          Reorder Now
-                                      </button>
-      </div>
-      </div>
-      </div>
-      </section>
+      
+      
       <section>
       <div className="flex items-center justify-between mb-6">
       <h3 className="font-headline-md text-primary"  >Payment Methods</h3>
-      <button className="bg-primary text-white px-4 py-2 rounded-lg text-label-sm flex items-center gap-2"  >
+      <button className="bg-primary text-white px-4 py-2 rounded-lg text-label-sm flex items-center gap-2"  onClick={() => setIsCardModalOpen(true)} >
       <span className="material-symbols-outlined text-[16px]" data-icon="add"  >add</span>
                                   Add New Card
                               </button>
+                              
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white p-6 rounded-lg border border-surface-variant flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+
+       {user && (
+  <AddNewCard
+    isOpen={isCardModalOpen}
+    onClose={() => setIsCardModalOpen(false)}
+    clientId={user.id}
+    onSuccess={() => loadCards(user.id)}
+  />
+)}
+
+  {cards.map((card) => (
+    <div
+      key={card.id}
+      className="bg-white p-6 rounded-lg border border-surface-variant flex items-center justify-between shadow-sm hover:shadow-md transition-shadow"
+    >
       <div className="flex items-center gap-4">
-      <div className="w-12 h-8 bg-surface-container rounded-sm flex items-center justify-center">
-      <img className="h-4 grayscale" data-alt="stylized classic visa credit card logo with blue and yellow colors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS8rAunYVSiVJcQ5kAS9fjOCP6muXaK8fZ4CNxzydi0uBMAiK2eITg3hrq1t3pQ6HLUhwYO0ybgJRsg2M2r_RMcaFGNTezii7fDBd8ky9ROdax-B0y6FGjK-G0usLc2H26UW8x4H3NfL8hN6aqNjlkhwz_INa0T9Acta_5_0F9-RlzF6pXzP9WLco9-UHDwgKfl1YI9OnCgCK54DYt-7Q9lGBV84YwiZ6PpAPIy2IgN__o5Oa0KaSxaZ_lcXRvQUaXhmWVdjuC3G4"  />
+        <div className="w-12 h-8 bg-surface-container rounded-sm flex items-center justify-center">
+          💳
+        </div>
+
+        <div>
+          <p className="font-medium text-primary">
+            **** **** **** {card.number.slice(-4)}
+          </p>
+          <p className="text-xs text-on-surface-variant">
+            Expires {card.expirationDate}
+          </p>
+        </div>
       </div>
-      <div>
-      <p className="font-medium text-primary"  >Visa ending in 4412</p>
-      <p className="text-xs text-on-surface-variant"  >Expires 08/26</p>
-      </div>
-      </div>
-      <span className="bg-primary-fixed text-on-primary-fixed text-[10px] px-2 py-0.5 rounded-full font-bold"  >DEFAULT</span>
-      </div>
-      <div className="bg-white p-6 rounded-lg border border-surface-variant flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-4">
-      <div className="w-12 h-8 bg-surface-container rounded-sm flex items-center justify-center">
-      <img className="h-4 grayscale" data-alt="mastercard logo with two overlapping circles in red and yellow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXfW_Dc1TNrexhcEYPUJ52dYgUudN0zvhNfUsbST3ZLuS1qARDwXWOYAUPlJYs42DuLb7Wq8YEUJVdzqOXwLouC00xP261rNAqIl-e1oH3N8c53JoIi0IvVOG9IRZXzzig6JrVh6CpDCu9GuU95NmDIOE177MBMC6y-eh2VV8CCtjQDE8kQHff_o-GvfjvgElyxQ8e4EE4rHBfjgQA8wrAaxi0RtdJ-SIY6KiEMj4m7RQ8FCaboDyyjjEh7Rjg-kE6VTJhyRJYHKw"  />
-      </div>
-      <div>
-      <p className="font-medium text-primary"  >Mastercard ending in 8829</p>
-      <p className="text-xs text-on-surface-variant"  >Expires 11/25</p>
-      </div>
-      </div>
-      <button className="text-on-surface-variant hover:text-error transition-colors"  >
-      <span className="material-symbols-outlined" data-icon="delete"  >delete</span>
+
+      <button
+        onClick={() => deleteCard(card.id)}
+        className="text-on-surface-variant hover:text-error transition-colors"
+      >
+        <span className="material-symbols-outlined">delete</span>
       </button>
-      </div>
-      </div>
+    </div>
+  ))}
+</div>
       </section>
       </div>
       </div>

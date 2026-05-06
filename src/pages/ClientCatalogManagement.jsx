@@ -1,14 +1,76 @@
 import { useState, useEffect } from 'react';
 
+import { foodService, categoryService, orderService, orderItemService } from "../apis/api";
+import { useNavigate } from "react-router-dom";
+
 const ClientCatalogManagement = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState('Recommended');
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    document.title = 'Menu Catalog | Bistro Provence';
-  }, []);
+  const initOrder = async () => {
+    try {
+
+      document.title = 'Menu Catalog | Bistro Provence';
+
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const payload = parseJwt(token);
+      const currentClientId = payload.id || payload.sub;
+
+      setClientIdState(currentClientId);
+
+      // 🔥 проверяем есть ли уже заказ в localStorage
+      const savedOrderId = localStorage.getItem("orderId");
+
+      if (savedOrderId) {
+        setOrderId(savedOrderId);
+
+        const res = await orderService.getOrder(savedOrderId);
+        setCart(res.data.list || []);
+        return;
+      }
+
+      // 🔥 ищем незавершённый заказ на бэке
+      const res = await orderService.findIsNotCompleted(currentClientId);
+
+      if (res.data) {
+        setOrderId(res.data.id);
+        setCart(res.data.list || []);
+
+        localStorage.setItem("orderId", res.data.id);
+      }
+
+    } catch (e) {
+      console.error("INIT ORDER ERROR:", e);
+    }
+  };
+
+  initOrder();
+}, []);
+
+
+useEffect(() => {
+  const loadOrder = async () => {
+    const savedOrderId = localStorage.getItem("orderId");
+
+    if (!savedOrderId) return;
+
+    try {
+      const res = await orderService.getOrder(savedOrderId);
+      setOrder(res.data);
+      setOrderId(savedOrderId);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  loadOrder();
+}, []);
 
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
@@ -19,72 +81,166 @@ const ClientCatalogManagement = () => {
     }
   };
 
-  const menuItems = [
-    {
-      id: 1,
-      title: 'Wagyu Heritage Burger',
-      description: 'Aged wagyu beef, balsamic onions, forest mushrooms, and cave-aged gruyère on sourdough.',
-      price: '$32.00',
-      badge: "Chef's Pick",
-      badgeColor: 'bg-primary-fixed',
-      badgeTextColor: 'text-on-primary-fixed-variant',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBwGuJN2S4LAQzXWelldYiwT2rpy1DHfH0wJJaA_rJsLr2CupOrCVMxR1xqk5-yinVPv7AUCV9odVojNdpIpS5SBqTrkKS9UyUmR0G06lVAbEpYY8hO_HVc5ig9jKMUJG5-PgriVCKNKlsRAaS73Wbpa3E0dyrFj8npXhAEqF__l7lJJ2RG5foYWabDaYItrw7NQqNhZUPcf9LiWom3sfsmZ7PV9vFCV1mVzkPtlEe1BXD8UsZmqkE7KdK6aDabEmH88IXVnoucDXA'
-    },
-    {
-      id: 2,
-      title: 'Black Truffle Hearth',
-      description: 'Hand-stretched dough, Perigord truffles, fior di latte, and cold-pressed extra virgin olive oil.',
-      price: '$44.00',
-      badge: 'Vegan Opt',
-      badgeColor: 'bg-surface-container-high',
-      badgeTextColor: 'text-on-surface-variant',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBrj5AR3lc4o7nfURJ2AozpmdWvWcX7vzy3yIYXwRCJPtA1r7HWomGj3xpzaHzbnk9yaA9qpA5Jw-hxOraW-FrFYFczonY8MvOEQnHmlbtm2KFwVFkdSSCmpsBNcGbOYb0Nf3v2FgoVzmz_N5kQjy_U4IqptNDTPoxchv_LS3HGs7JfeR6iYSdxbGakXF_gCr1vRc1UWKcmjlTjU9hlUJPDIGXmSckUjK3koo4Kl90mAn4z0FgsXdzY6Rmp3MvC8YT3M0kUrEz0mw0'
-    },
-    {
-      id: 3,
-      title: 'Omakase Signature',
-      description: 'Daily catch featuring Bluefin O-Toro, Hokkaido Scallops, and Wild Kinmedai.',
-      price: '$85.00',
-      badge: 'Popular',
-      badgeColor: 'bg-secondary-fixed',
-      badgeTextColor: 'text-on-secondary-container',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBngqBDIzfmc3ow_JJ5k4XXzSYWnOBevY2Urh0Cjit_P0xxy2d9GvjqrcrYxxb_gBdV55CQiJQmik0lA9OWmRQ7TayYnlhoY_osNFlrCCzLqFsMOtqNsT026lPmtHqqMow7S6zF4vg5haqBVT-qCSCQ4aW1MfBiatPtguUy6022nWbn_ISfWsKclv0RZ0mRlrFQnOfUwMuK4siQQ9xaaERKLcOwOjRz-Px668Y9oQub90MRAjbKQzoJ1ERGl3aSR7BHBCGd18sjmeA'
-    },
-    {
-      id: 4,
-      title: 'Provenance Bowl',
-      description: 'Roasted organic roots, quinoa, avocado, and house-made walnut dukkah.',
-      price: '$24.00',
-      badge: 'Fresh',
-      badgeColor: 'bg-primary-fixed',
-      badgeTextColor: 'text-on-primary-fixed-variant',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB9Z_jAvL3u97tpOC56CRVl4VwszRcrROOTrG3hqOudeRlrrLLYXXBv1vnCFo4zhncohWTwoSBByQAigZO6JHQcxK4INdAN-B2P8wS2Tfp8pEPAGLA6h3s-As0-L7kOm43pLezgFFzD-F7ISYtcPi7h5hPvlKplVRjylbFqGh1aLyl4KNHAz7eoeT0UByVnRrUPMP4xieFXiDFwIwrmTkacpz5YZ5hYMJNaiVIWyEeLgepOJS0mQoMKLJTrnQYtLfn02HX7oDxKb-I'
-    },
-    {
-      id: 5,
-      title: 'Coastal Scallops',
-      description: 'Diver scallops, cauliflower cream, pancetta crisps, and brown butter emulsion.',
-      price: '$38.00',
-      badge: null,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCuoWz-27DEyInmFEx8OdhFox1qf67NkvFdESRf5Ft_QtjBNuebt448oOIxyQK3XgrVEFeMTBPcSXEzOprua5TYksQQrdee7lwwUxvwDyJJeNqa6sT9yTXfSf1cReiu1PqILxuyy2wi86FVL6WdnJ-nVFIKgbt6KnNXb-2hYgZ1Nt5xjAcuXWi5lhyz1JxlPyTvFS6keJGPV0lsM-6FxFeJTIE4A9ofEpGCC5m-p5HM_EzvGYUzwKXvc1bANb8u8DLIZK-xIWAZebE'
-    },
-    {
-      id: 6,
-      title: 'Red Wine Short Rib',
-      description: '12-hour braised beef, buttery polenta, and heirloom carrots in a rich jus.',
-      price: '$52.00',
-      badge: null,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDepSPA5NMJ2zK6oOEo7ohM6PAcM8-QyDs__6UTjnbK9OySMov_tWLG6E9a_Bfz0CDL1Yu-TCVIXoEB_LKrbpMnnFcC24lc3E_YmhwhHwu4-eukStRkszTamYZomhe057ftJJyL5yQtnYngDvzCYzpd63esf2gccz_ZxgDD-IGVb_MEqmRh6P3BJG1b5k0L737nmRAqHI9YQ3DsAMC3XqkpigXxcyjBoHmdIkr9eYX3mVJLXCHpgPyDDi9RW92r3SuzqosoBed3r_w'
-    }
-  ];
+  const [menuItems, setMenuItems] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const categories = [
-    { icon: 'tapas', label: 'Appetizers' },
-    { icon: 'outdoor_grill', label: 'Main Course' },
-    { icon: 'bakery_dining', label: 'Sides' },
-    { icon: 'icecream', label: 'Desserts' },
-    { icon: 'wine_bar', label: 'Wine List' }
-  ];
+
+  useEffect(() => {
+  loadFoods();
+}, [currentPage, itemsPerPage]);
+
+const loadFoods = async () => {
+  try {
+    setLoading(true);
+    const res = await foodService.getAllFoods(currentPage - 1, itemsPerPage);
+
+    setMenuItems(res.data.content);
+    setTotalItems(res.data.totalElements);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+};
+
+ const [categories, setCategories] = useState([]);
+
+ useEffect(() => {
+  loadCategories();
+}, []);
+
+const loadCategories = async () => {
+  try {
+    const res = await categoryService.getAll(0, 100); 
+
+    setCategories(res.data.content || res.data);
+  } catch (e) {
+    console.error("CATEGORY ERROR:", e);
+  }
+};
+
+
+const handleCategoryClick = async (categoryId) => {
+  try {
+    const res = await foodService.getByCategory(categoryId);
+    setMenuItems(res.data);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const handlePriceFilter = async (min, max) => {
+  try {
+    const res = await foodService.getByPriceRange(min, max);
+    setMenuItems(res.data);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+
+const handleSearch = async (value) => {
+  try {
+    const res = await foodService.searchByName(value);
+    setMenuItems(res.data);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const parseJwt = (token) => {
+  return JSON.parse(atob(token.split(".")[1]));
+};
+
+// usage
+const token = localStorage.getItem("token");
+const payload = parseJwt(token);
+const clientId = payload.id; // или sub
+
+const [orderId, setOrderId] = useState(null);
+
+const [cart, setCart] = useState([]);
+
+const [clientIdState, setClientIdState] = useState(null);
+
+const addToCart = async (item) => {
+  try {
+    let currentOrderId = orderId || localStorage.getItem("orderId");
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let currentClientId = clientId;
+
+    if (!currentClientId) {
+      const res = await authService.extractId(token);
+      currentClientId = res.data;
+      setClientId(currentClientId);
+    }
+
+    // 🛒 создаём заказ если нет
+    if (!currentOrderId) {
+      const orderRes = await orderService.createOrder({
+        clientId: currentClientId,
+        restaurantId: null,
+        paymentId: null,
+        deliveryId: null,
+        shortDescription: "Draft order",
+      });
+
+      currentOrderId = orderRes.data.id;
+      setOrderId(currentOrderId);
+      localStorage.setItem("orderId", currentOrderId);
+    }
+
+    // 🔍 ищем item в текущем заказе
+    const existingItem = order?.list?.find(
+      (i) => i.foodId === item.id
+    );
+
+    if (existingItem) {
+      // ➕ UPDATE (увеличиваем количество)
+      await orderItemService.updateItem({
+        orderId: currentOrderId,
+        foodId: item.id,
+        quantity: existingItem.quantity + 1,
+      });
+    } else {
+      // ➕ CREATE (новый item)
+      await orderItemService.createItem({
+        orderId: currentOrderId,
+        foodId: item.id,
+        quantity: 1,
+      });
+    }
+
+    // 🔄 обновляем заказ с бэка (важно!)
+    const updated = await orderService.getOrder(currentOrderId);
+    setOrder(updated.data);
+
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const navigate = useNavigate();
+
+const openDetails = (id) => {
+  navigate(`/details-menu-dish/${id}`);
+};
+
+const getImageUrl = (id) =>
+  id ? `http://localhost:8080/catalog/images/${id}` : "/no-image.png";
+
+const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+const changePage = (page) => {
+  setCurrentPage(page);
+};
+
+const totalQuantity =
+  order?.list?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 
   return (
     <div className="light bg-surface text-on-background selection:bg-primary-fixed-dim">
@@ -145,14 +301,13 @@ const ClientCatalogManagement = () => {
             </h3>
             <div className="space-y-1">
               {categories.map((category) => (
-                <button
-                  key={category.label}
-                  className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left"
-                >
-                  <span className="material-symbols-outlined">{category.icon}</span>
-                  <span className="text-sm">{category.label}</span>
-                </button>
-              ))}
+  <button
+    key={category.id}
+    onClick={() => handleCategoryClick(category.id)}
+  >
+    {category.name}
+  </button>
+))}
             </div>
           </div>
 
@@ -164,10 +319,6 @@ const ClientCatalogManagement = () => {
             <div className="flex items-center gap-3 p-3">
               <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
                 <span className="material-symbols-outlined text-on-primary-container">person</span>
-              </div>
-              <div>
-                <p className="text-label-sm font-bold">James Wilson</p>
-                <p className="text-xs text-on-surface-variant">Member since 2023</p>
               </div>
             </div>
           </div>
@@ -207,17 +358,37 @@ const ClientCatalogManagement = () => {
             <input
               className="bg-transparent border-none focus:ring-0 text-body-md ml-2 w-48"
               placeholder="Search menu..."
+              onChange={(e) => handleSearch(e.target.value)}
               type="text"
             />
           </div>
-          <div className="flex gap-2 md:gap-4">
-            <button className="p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200">
-              <span className="material-symbols-outlined">shopping_cart</span>
-            </button>
-            <button className="p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200">
-              <span className="material-symbols-outlined">account_circle</span>
-            </button>
-          </div>
+         <div className="flex gap-2 md:gap-4">
+  <button
+  onClick={() => {
+    const savedOrderId = orderId || localStorage.getItem("orderId");
+
+    if (!savedOrderId) {
+      console.warn("Order not found");
+      return;
+    }
+
+    navigate(`/created-order-details/${savedOrderId}`);
+  }}
+  className="relative p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200"
+>
+  <span className="material-symbols-outlined">shopping_cart</span>
+
+ {totalQuantity > 0 && (
+  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
+    {totalQuantity}
+  </span>
+)}
+</button>
+
+  <button className="p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200">
+    <span className="material-symbols-outlined">account_circle</span>
+  </button>
+</div>
         </div>
       </header>
 
@@ -231,24 +402,7 @@ const ClientCatalogManagement = () => {
 
           <div className="space-y-6">
             {/* Shared Navigation Tabs */}
-            <div className="space-y-2">
-              <button className="w-full flex items-center gap-3 p-3 bg-[#1B3022] text-white rounded-lg font-semibold transition-all duration-300 text-left hover:shadow-md">
-                <span className="material-symbols-outlined">payments</span>
-                <span>Sort by Price</span>
-              </button>
-              <button className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left">
-                <span className="material-symbols-outlined">eco</span>
-                <span>Dietary Needs</span>
-              </button>
-              <button className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left">
-                <span className="material-symbols-outlined">auto_awesome</span>
-                <span>Chef's Specials</span>
-              </button>
-              <button className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left">
-                <span className="material-symbols-outlined">fiber_new</span>
-                <span>New Arrivals</span>
-              </button>
-            </div>
+           
 
             {/* Price Range Filter */}
             <div className="pt-6 border-t border-stone-200">
@@ -275,40 +429,20 @@ const ClientCatalogManagement = () => {
               </div>
             </div>
 
-            {/* Sort Order Filter */}
-            <div className="pt-6">
-              <h3 className="text-label-sm uppercase tracking-widest text-on-surface-variant mb-4">
-                Sort Order
-              </h3>
-              <select className="w-full bg-surface border border-outline-variant rounded-lg p-3 text-body-md focus:ring-primary focus:border-primary">
-                <option>Recommended</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
-                <option>Most Popular</option>
-              </select>
-            </div>
-
             {/* Food Categories Section */}
             <div className="pt-6 border-t border-stone-200">
               <h3 className="text-label-sm uppercase tracking-widest text-on-surface-variant mb-4">
                 Food Categories
               </h3>
               <div className="space-y-1">
-                {categories.map((category, index) => (
-                  <button
-                    key={category.label}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg font-${
-                      index === 0 ? 'bold' : 'normal'
-                    } transition-all duration-300 text-left ${
-                      index === 0
-                        ? 'text-[#D4A373] bg-surface-container'
-                        : 'text-stone-600 hover:bg-stone-50 hover:pl-2'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined">{category.icon}</span>
-                    <span className="text-sm">{category.label}</span>
-                  </button>
-                ))}
+                {categories.map((category) => (
+  <button
+    key={category.id}
+    onClick={() => handleCategoryClick(category.id)}
+  >
+    {category.name}
+  </button>
+))}
               </div>
             </div>
           </div>
@@ -328,19 +462,23 @@ const ClientCatalogManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {menuItems.map((item) => (
               <article
+                onClick={() => openDetails(item.id)}
                 key={item.id}
                 className="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0px_10px_30px_rgba(27,48,34,0.05)] transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="aspect-[4/3] overflow-hidden">
                   <img
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    src={item.image}
-                  />
+  alt={item.name}
+  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+  src={getImageUrl(item.id)}
+  onError={(e) => {
+    e.currentTarget.src = "/no-image.png";
+  }}
+/>
                 </div>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-headline-md text-headline-md text-primary">{item.title}</h3>
+                    <h3 className="font-headline-md text-headline-md text-primary">{item.name}</h3>
                     {item.badge && (
                       <span
                         className={`${item.badgeColor} ${item.badgeTextColor} text-label-sm px-2 py-1 rounded`}
@@ -350,11 +488,14 @@ const ClientCatalogManagement = () => {
                     )}
                   </div>
                   <p className="font-body-md text-on-surface-variant mb-6 line-clamp-2">
-                    {item.description}
+                    {item.shortDescription}
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="font-price-label text-price-label text-primary">{item.price}</span>
-                    <button className="bg-[#D4A373] text-white px-6 py-2 rounded-lg font-bold hover:brightness-105 transition-all flex items-center gap-2">
+                    <button onClick={(e) => {
+  e.stopPropagation();
+  addToCart(item);
+}} className="bg-[#D4A373] text-white px-6 py-2 rounded-lg font-bold hover:brightness-105 transition-all flex items-center gap-2">
                       <span className="material-symbols-outlined">add_shopping_cart</span>
                       Add
                     </button>
