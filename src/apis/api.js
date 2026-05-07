@@ -143,8 +143,8 @@ export const orderService = {
   createOrder: (data) =>
     api.post("/orders", data),
 
-  updateOrder: (id, data) =>
-    api.put(`/orders/${id}`, data),
+   updateOrder: (orderId, data) =>
+    api.put(`/orders/${orderId}`, data),
 
   deleteOrder: (id) =>
     api.delete(`/orders/${id}`),
@@ -177,20 +177,16 @@ export const orderService = {
 
 export const orderItemService = {
 
-  // ➕ Создать item (добавить блюдо в заказ)
   createItem: (data) => {
     return api.post('/order-items', data);
   },
 
-  // 🔄 Обновить item (например количество)
   updateItem: (data) => {
     return api.put('/order-items', data);
   },
 
-  // ❌ Удалить item
   deleteItem: (id) => api.delete(`/order-items/${id}`),
 
-  // 🔍 Получить item по id
   getItem: (id) => {
     return axios.get('/order-items/${id}', getAuthConfig());
   },
@@ -205,6 +201,32 @@ export const cardService = {
   getById: (id) => api.get(`/cards/${id}`),
 
   delete: (id) => api.delete(`/cards/${id}`)
+
+};
+
+
+export const deliveryService = {
+
+  create: (orderId, data) =>
+    api.post(`/delivery/${orderId}`, data),
+
+  getByOrderId: (orderId) =>
+    api.get(`/delivery/${orderId}`),
+
+};
+
+export const paymentService = {
+
+  approve: (cardId, orderId) =>
+    api.post(`/payments/approve`, null, {
+      params: {
+        cardId,
+        orderId,
+      },
+    }),
+
+  getByOrderId: (orderId) =>
+    api.get(`/payments/${orderId}`),  
 
 };
 

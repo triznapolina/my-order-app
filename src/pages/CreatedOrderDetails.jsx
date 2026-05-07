@@ -1,7 +1,7 @@
 ﻿import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import { orderService, restaurantService, userService, cardService, orderItemService } from "../apis/api";
+import { orderService, restaurantService, userService, cardService, orderItemService, deliveryService, paymentService } from "../apis/api";
 
 export default function CreatedOrderDetails() {
 
@@ -18,6 +18,8 @@ const [selectedCard, setSelectedCard] = useState(null);
 
 const [shortDescription, setShortDescription] = useState("");
 const [deliveryType, setDeliveryType] = useState("client"); 
+
+const [byCard, setByCard] = useState(false);
 
 const getImageUrl = (id) =>
   id ? `http://localhost:8080/catalog/images/${id}` : "/no-image.png";
@@ -112,30 +114,85 @@ const removeItem = async (foodId) => {
   }
 };
 
+const [isOrderResultOpen, setIsOrderResultOpen] = useState(false);
 
 // 🛒 оформление заказа
 const placeOrder = async () => {
   try {
-    if (deliveryType === "client") {
-      await orderService.createDelivery({
+
+    const byCard = !!selectedCard;
+
+    let delivery = null;
+
+    try {
+      delivery = await deliveryService.getByOrderId(id).data;
+    } catch (e) {
+      delivery = null;
+    }
+
+    if (!delivery) {
+
+      await deliveryService.create(id, {
         orderId: id,
-        deliveryAddress: clientAddress,
-        restaurantId: null,
-      });
-    } else {
-      await orderService.createDelivery({
-        orderId: id,
-        deliveryAddress: null,
-        restaurantId: selectedAddress?.id,
+
+        deliveryAddress:
+          deliveryType === "client"
+            ? clientAddress
+            : null,
+
+        restaurantId:
+          deliveryType === "restaurant"
+            ? selectedAddress?.id
+            : null,
+
+        byCard,
       });
     }
 
-    await orderService.updateOrder({
-      orderId: id,
-      shortDescription,
-    });
+    let payment = null;
+    let order = null;
 
-    alert("Order placed!");
+    if (byCard) {
+
+      try {
+        order = await orderService.getOrder(id);
+        payment = order.paymentId;
+      } catch (e) {
+        payment = null;
+      }
+
+      if (!payment) {
+
+        await paymentService.approve(
+          selectedCard?.id,
+          id
+        );
+      }
+    }
+
+  
+  await orderService.updateOrder(id, {
+  paymentId: selectedCard?.id || null,
+
+  delivery: {
+    address:
+      deliveryType === "client"
+        ? clientAddress
+        : null,
+
+    restaurantId:
+      deliveryType === "restaurant"
+        ? selectedAddress?.id
+        : null,
+
+    byCard: !!selectedCard,
+  },
+
+  shortDescription,
+});
+
+    setIsOrderResultOpen(true);
+
   } catch (e) {
     console.error(e);
   }
@@ -358,64 +415,120 @@ const placeOrder = async () => {
   </div>
 </section>
       
-      {/* Section: Payment Method */}
-      <section className="space-y-lg">
-      <div className="flex items-center justify-between">
-      <h2 className="font-headline-lg text-headline-lg text-primary">Payment Method</h2>
-      <button className="text-secondary font-label-sm flex items-center gap-2 hover:underline underline-offset-4">
-      <span className="material-symbols-outlined text-sm">credit_card</span> ADD CARD
-                              </button>
-      </div>
-      <div className="space-y-md">
-      
-      {Array.isArray(cards) && cards.map((card) => {
-    const isSelected = selectedCard?.id === card.id;
+     {/* Section: Payment Method */}
+<section className="space-y-lg">
+  <div className="flex items-center justify-between">
+    <h2 className="font-headline-lg text-headline-lg text-primary">
+      Payment Method
+    </h2>
 
-    return (
-      <div
-        key={card.id}
-        onClick={() => setSelectedCard(card)}
-        className={`p-lg rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
-          isSelected
-            ? "bg-surface-container border-2 border-primary-container"
-            : "bg-surface-container-lowest border border-stone-200 hover:border-primary-container"
-        }`}
-      >
-        <div className="flex items-center gap-lg">
-          <div className="bg-white p-2 rounded border border-stone-100">
-            <span
-              className={`material-symbols-outlined ${
-                isSelected ? "text-primary" : "text-stone-400"
-              }`}
-            >
-              payments
-            </span>
-          </div>
+    <button className="text-secondary font-label-sm flex items-center gap-2 hover:underline underline-offset-4">
+      <span className="material-symbols-outlined text-sm">credit_card</span>
+      ADD CARD
+    </button>
+  </div>
 
-          <div>
-            <p className="font-body-lg font-bold text-primary">
-              {card.brand || "Card"} ending in {card.last4 || card.number?.slice(-4)}
-            </p>
+  <div className="space-y-md">
 
-            <p className="font-label-sm text-on-surface-variant uppercase mt-1">
-              Expires {card.expMonth}/{card.expYear}
-            </p>
-          </div>
+    {/* Cash Payment Block */}
+    <div
+       onClick={() => {
+    setSelectedCard(null);
+    setByCard(false);
+  }}
+      className={`p-lg rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
+        selectedCard === null
+          ? "bg-surface-container border-2 border-primary-container"
+          : "bg-surface-container-lowest border border-stone-200 hover:border-primary-container"
+      }`}
+    >
+      <div className="flex items-center gap-lg">
+        <div className="bg-white p-2 rounded border border-stone-100">
+          <span
+            className={`material-symbols-outlined ${
+              selectedCard === null ? "text-primary" : "text-stone-400"
+            }`}
+          >
+            payments
+          </span>
         </div>
 
-        <span
-          className={`material-symbols-outlined ${
-            isSelected ? "text-primary" : "text-stone-300"
-          }`}
-        >
-          {isSelected ? "radio_button_checked" : "radio_button_unchecked"}
-        </span>
+        <div>
+          <p className="font-body-lg font-bold text-primary">
+            Payment in Cash
+          </p>
+
+          <p className="font-label-sm text-on-surface-variant uppercase mt-1">
+            Pay directly to courier
+          </p>
+        </div>
       </div>
-    );
-  })}
-      
-      </div>
-      </section>
+
+      <span
+        className={`material-symbols-outlined ${
+          selectedCard === null ? "text-primary" : "text-stone-300"
+        }`}
+      >
+        {selectedCard === null
+          ? "radio_button_checked"
+          : "radio_button_unchecked"}
+      </span>
+    </div>
+
+    {Array.isArray(cards) &&
+      cards.map((card) => {
+        const isSelected = selectedCard?.id === card.id;
+
+        return (
+          <div
+            key={card.id}
+            onClick={() => {
+              setSelectedCard(card);
+              setByCard(true);
+            }}
+            className={`p-lg rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
+              isSelected
+                ? "bg-surface-container border-2 border-primary-container"
+                : "bg-surface-container-lowest border border-stone-200 hover:border-primary-container"
+            }`}
+          >
+            <div className="flex items-center gap-lg">
+              <div className="bg-white p-2 rounded border border-stone-100">
+                <span
+                  className={`material-symbols-outlined ${
+                    isSelected ? "text-primary" : "text-stone-400"
+                  }`}
+                >
+                  payments
+                </span>
+              </div>
+
+              <div>
+                <p className="font-body-lg font-bold text-primary">
+                  {card.brand || "Card"} ending in{" "}
+                  {card.last4 || card.number?.slice(-4)}
+                </p>
+
+                <p className="font-label-sm text-on-surface-variant uppercase mt-1">
+                  Expires {card.expMonth}/{card.expYear}
+                </p>
+              </div>
+            </div>
+
+            <span
+              className={`material-symbols-outlined ${
+                isSelected ? "text-primary" : "text-stone-300"
+              }`}
+            >
+              {isSelected
+                ? "radio_button_checked"
+                : "radio_button_unchecked"}
+            </span>
+          </div>
+        );
+      })}
+  </div>
+</section>
       </div>
       {/* Right Column: Order Summary Sidebar */}
       <aside className="lg:w-[400px]">
@@ -425,7 +538,15 @@ const placeOrder = async () => {
       
       <div class="pt-md">
 <label class="block font-label-sm text-on-surface-variant mb-2 uppercase" for="order-instructions">Special Instructions (optional)</label>
-<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-3 text-body-md focus:outline-none focus:border-primary transition-colors placeholder:text-stone-400" id="order-instructions" name="order-instructions" placeholder="e.g., allergies, gate code, extra napkins" type="text"/>
+<input
+  className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-3 text-body-md focus:outline-none focus:border-primary transition-colors placeholder:text-stone-400"
+  id="order-instructions"
+  name="order-instructions"
+  placeholder="e.g., allergies, gate code, extra napkins"
+  type="text"
+  value={shortDescription}
+  onChange={(e) => setShortDescription(e.target.value)}
+/>
 </div>
       <div className="pt-lg mt-lg border-t border-stone-200/50">
       <div className="flex justify-between items-center mb-xl">
@@ -464,6 +585,43 @@ const placeOrder = async () => {
                   </div>
       </div>
       </footer>
+
+
+
+      {isOrderResultOpen && (
+  <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="bg-white dark:bg-stone-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-stone-200 dark:border-stone-800">
+      
+      <div className="flex flex-col items-center text-center">
+        <span className="material-symbols-outlined text-green-500 text-6xl mb-4">
+          check_circle
+        </span>
+
+        <h2 className="text-2xl font-bold text-primary mb-2">
+          Order Created
+        </h2>
+
+        <p className="text-on-surface-variant mb-6">
+          Your order has been successfully placed.
+        </p>
+
+        <button
+          onClick={() => {
+            setIsOrderResultOpen(false);
+            window.location.href = "/order-result-created";
+          }}
+          className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
     </div>
   );
 }
