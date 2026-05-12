@@ -116,7 +116,6 @@ export default function DigitalBistroUserProfile() {
           <div className="px-md sm:px-lg py-md flex items-center justify-between border-b border-surface-container-highest shrink-0">
             <div className="space-y-1">
               <h3 className="font-headline-md text-headline-md text-primary truncate">User Profile Details</h3>
-              <p className="text-sm text-stone-500">Просмотр и управление данными пользователя</p>
             </div>
             <button
               className="w-10 h-10 rounded-full flex items-center justify-center text-stone-500 hover:bg-surface-container-high transition-colors"
@@ -140,24 +139,12 @@ export default function DigitalBistroUserProfile() {
               <>
                 <section className="bg-white rounded-xl border border-surface-container-highest p-md sm:p-lg shadow-sm">
                   <div className="flex flex-col sm:flex-row gap-md sm:gap-lg items-center sm:items-start text-center sm:text-left">
-                    <div className="relative">
-                      <img
-                        alt={user.name || user.email}
-                        className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover ring-4 ring-surface-container"
-                        src={
-                          user.avatar ||
-                          "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80"
-                        }
-                      />
-                      <div className="absolute -bottom-2 right-1/2 translate-x-1/2 sm:translate-x-0 sm:-right-2 bg-secondary text-white px-3 py-1 rounded-full text-label-sm font-label-sm">
-                        {user.active ? "Active" : "Inactive"}
-                      </div>
-                    </div>
+                    
 
                     <div className="flex-1 space-y-md w-full">
                       <div>
                         <h4 className="font-headline-lg text-headline-lg text-primary tracking-tight">{user.name || user.email}</h4>
-                        <p className="text-stone-500 font-body-md">{user.role || "Client"}</p>
+                        <p className="text-stone-500 font-body-md">{"Client"}</p>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-md pt-md border-t border-surface-container text-left">
                         <div className="flex items-center gap-sm text-on-surface-variant overflow-hidden">
@@ -166,50 +153,27 @@ export default function DigitalBistroUserProfile() {
                         </div>
                         <div className="flex items-center gap-sm text-on-surface-variant">
                           <span className="material-symbols-outlined text-secondary shrink-0">phone_iphone</span>
-                          <span className="font-body-md">{user.phone || "Не указано"}</span>
+                          <span className="font-body-md">{user.phoneNumber || "Не указано"}</span>
                         </div>
                         <div className="flex items-center gap-sm text-on-surface-variant">
                           <span className="material-symbols-outlined text-secondary shrink-0">location_on</span>
-                          <span className="font-body-md">{user.location || user.city || "Не указано"}</span>
+                          <span className="font-body-md">{user.address || "Не указано"}</span>
                         </div>
                         <div className="flex items-center gap-sm text-on-surface-variant">
                           <span className="material-symbols-outlined text-secondary shrink-0">calendar_today</span>
-                          <span className="font-body-md">{formattedDate}</span>
+                          <span className="font-body-md">{user.fullName || "Не указано"}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-lg flex flex-col sm:flex-row justify-between gap-4">
-                    <button
-                      type="button"
-                      onClick={handleToggleActive}
-                      className={`w-full sm:w-auto px-lg py-sm rounded-lg text-sm font-semibold transition-all ${
-                        user.active
-                          ? "bg-error text-white hover:bg-error-container"
-                          : "bg-secondary text-white hover:bg-secondary-container"
-                      }`}
-                    >
-                      {user.active ? "Deactivate user" : "Activate user"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="w-full sm:w-auto px-lg py-sm rounded-lg border border-outline text-on-surface font-label-sm hover:bg-surface-container transition-colors"
-                    >
-                      Back to users
-                    </button>
-                  </div>
+                  
                 </section>
 
                 <section className="space-y-md">
                   <div className="flex items-center justify-between">
                     <h5 className="font-headline-md text-headline-md text-primary">Active Orders</h5>
-                    <button className="text-secondary font-label-sm flex items-center gap-xs hover:underline" type="button">
-                      <span className="hidden sm:inline">View All History</span>
-                      <span className="sm:hidden">All History</span>
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </button>
+                    
                   </div>
 
                   <div className="overflow-hidden rounded-xl border border-surface-container-highest bg-white">
@@ -225,15 +189,19 @@ export default function DigitalBistroUserProfile() {
                       <tbody className="divide-y divide-surface-container">
                         {orders.length > 0 ? (
                           orders.map((order) => (
-                            <tr key={order.id || order.orderNumber} className="hover:bg-stone-50 transition-colors">
-                              <td className="px-lg py-md font-label-sm text-primary">{order.id || order.orderNumber}</td>
+                            <tr key={order.id || order.number} className="hover:bg-stone-50 transition-colors">
+                              <td className="px-lg py-md font-label-sm text-primary">{order.number}</td>
                               <td className="px-lg py-md font-body-md text-stone-600">{order.date || order.createdAt || "—"}</td>
                               <td className="px-lg py-md text-center">
                                 <span className="px-3 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-label-sm font-semibold">
                                   {order.status || "Unknown"}
                                 </span>
                               </td>
-                              <td className="px-lg py-md text-right font-price-label text-primary">{order.total || order.amount || "—"}</td>
+                              <td className="px-lg py-md text-right font-price-label text-primary">
+  {order.totalPrice != null
+    ? Number(order.totalPrice).toFixed(2)
+    : "—"}
+</td>
                             </tr>
                           ))
                         ) : (
@@ -282,24 +250,7 @@ export default function DigitalBistroUserProfile() {
                       <p className="font-headline-md text-primary">{orders.length}</p>
                     </div>
                   </div>
-                  <div className="p-md bg-stone-100 rounded-lg flex items-center gap-md">
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                      <span className="material-symbols-outlined">payments</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-stone-500 font-label-sm">Lifetime Value</p>
-                      <p className="font-headline-md text-primary">{user.lifetimeValue ? `$${user.lifetimeValue}` : "$3,420"}</p>
-                    </div>
-                  </div>
-                  <div className="p-md bg-stone-100 rounded-lg flex items-center gap-md">
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                      <span className="material-symbols-outlined">star_rate</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-stone-500 font-label-sm">Rating Score</p>
-                      <p className="font-headline-md text-primary">{user.rating ?? "4.9"}</p>
-                    </div>
-                  </div>
+                  
                 </div>
               </>
             )}

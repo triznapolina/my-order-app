@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 
 import { useNavigate } from "react-router-dom";
 
-import { categoryService } from '../apis/api';
+import { categoryService, foodService } from '../apis/api';
 
 export default function DigitalBistroCategories() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,13 +15,79 @@ export default function DigitalBistroCategories() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   
-  const fetchData = useCallback(async () => {
-      const res = await categoryService.getAll(page, size);
-  
-      setData(res.data.content);
-      setTotalPages(res.data.totalPages);
-      setTotalElements(res.data.totalElements);
-  }, [page, size]);
+  // fetchData
+
+const fetchData = useCallback(async () => {
+
+  try {
+
+    const res =
+      await categoryService.getAll(
+        page,
+        size
+      );
+
+    const categories =
+      res.data.content || [];
+
+    const categoriesWithQuantity =
+      await Promise.all(
+        categories.map(
+          async (category) => {
+
+            let quantity = 0;
+
+            try {
+
+              const foodsResponse =
+                await foodService.getByCategory(
+                  category.id
+                );
+
+              quantity =
+                foodsResponse.data?.length || 0;
+
+            } catch (e) {
+
+              console.error(
+                "LOAD FOODS ERROR",
+                e
+              );
+
+            }
+
+            return {
+
+              ...category,
+
+              quantity,
+
+            };
+
+          }
+        )
+      );
+
+    setData(categoriesWithQuantity);
+
+    setTotalPages(
+      res.data.totalPages
+    );
+
+    setTotalElements(
+      res.data.totalElements
+    );
+
+  } catch (e) {
+
+    console.error(
+      "FETCH CATEGORY ERROR",
+      e
+    );
+
+  }
+
+}, [page, size]);
   
     useEffect(() => {
       fetchData();
@@ -175,9 +241,7 @@ export default function DigitalBistroCategories() {
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead className="bg-stone-50 border-b border-stone-100">
                   <tr>
-                    <th className="px-6 py-4 font-label-sm text-stone-500 uppercase tracking-wider w-12">
-                      <input className="rounded text-primary focus:ring-primary" type="checkbox" />
-                    </th>
+                  
                     <th className="px-6 py-4 font-label-sm text-stone-500 uppercase tracking-wider">Category</th>
                     <th className="px-6 py-4 font-label-sm text-stone-500 uppercase tracking-wider">Description</th>
                     <th className="px-6 py-4 font-label-sm text-stone-500 uppercase tracking-wider">Quantity</th>
@@ -189,9 +253,7 @@ export default function DigitalBistroCategories() {
                 <tbody className="divide-y divide-stone-100">
               {data.map((row) => (
                 <tr key={row.id} className="group hover:bg-stone-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <input className="rounded text-primary focus:ring-primary" type="checkbox" />
-                  </td>
+                  
 
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

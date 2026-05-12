@@ -1,144 +1,389 @@
-import { useState, useMemo } from "react";
-
-const orderStats = [
-  {
-    label: "Live Orders",
-    value: "24",
-    badge: "+12% from last hour",
-    icon: "wifi_tethering",
-    badgeClass: "text-emerald-700",
-    iconBg: "bg-emerald-50 text-emerald-900",
-  },
-  {
-    label: "Preparing",
-    value: "08",
-    badge: "Avg. time: 14 mins",
-    icon: "skillet",
-    badgeClass: "text-stone-400",
-    iconBg: "bg-tertiary-fixed text-tertiary",
-  },
-  {
-    label: "Ready",
-    value: "05",
-    badge: "Needs notification",
-    icon: "notifications_active",
-    badgeClass: "text-secondary font-bold italic",
-    iconBg: "bg-secondary-fixed text-secondary",
-  },
-  {
-    label: "Today's Revenue",
-    value: "$4,280",
-    badge: "Higher than yesterday",
-    icon: "payments",
-    badgeClass: "text-primary-fixed-dim",
-    iconBg: "bg-primary-fixed-dim text-primary",
-    panelClass: "bg-primary-container",
-    valueClass: "text-white",
-  },
-];
-
-const orders = [
-  {
-    id: "#ORD-8821",
-    datetime: "Oct 24, 12:45 PM",
-    customer: "Julian Rossi",
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBiteBAODj5Hehog54Cs9zJ_7k30VC14UD6ycCqx0hjJzczQORgxXZRauDoke_VH2Ziz-rJpYTLmQj4aG8H7yuhTjgG5tzLzGo8-JCShm7gWR7cOklTtwlG6g5SJZZmquUfymuS2w3vrXHzqXRYfFFMJ3bwdja396s8mC-ED1i5p9gPMhM6rKTSNV1TcUXoOS9opIuEUrhgto8PGMz0z_Tt25l_sNBvXzJF__7m1jP9Mh66TdiMcZ87Mfj_l6iFvrSfpAS7W64vYQg",
-    items: "3x Truffle Gnocchi...",
-    total: "$124.50",
-    status: "Preparing",
-    statusClass: "bg-emerald-50 text-emerald-900",
-    actionLabel: "Notify Pick-up",
-    actionDisabled: false,
-    actionClass: "bg-secondary text-white hover:bg-secondary-container",
-  },
-  {
-    id: "#ORD-8820",
-    datetime: "Oct 24, 12:30 PM",
-    customer: "Elena Brooks",
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5Waum2Ed4ByvjEhkdNErXs7z7gAwQK7SL1U9e9Gf-HPtPmGBYtepJzs96s5VnF2jndhVkTVI6SAJwy6nFoJ9IKC2SLOZBgBJkyamAXqwkzSKjh-IAn85uXwNDa8x2iGbSDvEmZSVdCwB19ZAmh3-z1mADQmuRuL8jQj1j9xuhwnp0473hPzVY--Xrd1ZQQkhOH7HPyNDJXoQnJXQzOXKvd8JRvDWet_QHptvO0ysHmy4CVUFxw5O0GgAcsMyoddauNdIqQJlw5kc",
-    items: "1x Ribeye Steak, 1x Red Wine",
-    total: "$89.00",
-    status: "Ready",
-    statusClass: "bg-secondary-fixed text-secondary",
-    actionLabel: "Notify Pick-up",
-    actionDisabled: false,
-    actionClass: "bg-secondary text-white hover:bg-secondary-container",
-  },
-  {
-    id: "#ORD-8819",
-    datetime: "Oct 24, 12:15 PM",
-    customer: "Marcus Chen",
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuCZBgXzwJ6ry14hSG6-KZumtpLlo4-PmRoGpqVW4K7tBpSov2-4uDIbiBmEu78B4CSELfSPd8XUMdrWCOGVtUbhw9awYPOirelT8TMGdnC2awrsrioeQ4quWejG-ih2WP965k6N2RLfOCbUjukJCx2hmWTam4f0EaISU9gpp7m25qlWWbBx2eehUC7t9C88BqpNk4DPTIj7gu7rW8vZW8mdjQplYT_aN_baqtcrAi0S8a_GSCgzxOfbJCMrv1GkRZJ8NPcKUWOrboE",
-    items: "2x Lobster Thermidor",
-    total: "$210.00",
-    status: "Completed",
-    statusClass: "bg-stone-100 text-stone-600",
-    actionLabel: "Notified",
-    actionDisabled: true,
-    actionClass: "text-stone-400 cursor-not-allowed",
-  },
-  {
-    id: "#ORD-8818",
-    datetime: "Oct 24, 11:55 AM",
-    customer: "Sarah Jenkins",
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBMRm0a7devShm1e6OQT07W7kMO87e5slIAmVBg4COKhzUxSk_u79GaL7PtdmZPH_fsQfAM9goxGhJHkYYLVB7G6g1EMW_mDcp3VwfpIuZB-IG2Djwpx-n6maVH7CqS3xdPTI8LZzWkJM0UNRQZXsPQUEaDr6OC5legXKMYhxAfxpkDNishQizhwvZpIn3KVLqEPYDdCGThllXh-3ujwcX24bzCYJkLO53UXYZ3Ze-keyJEBmxi4WefuhXbof9yHChNaD-crjxHdJk",
-    items: "4x Classic Burger",
-    total: "$72.25",
-    status: "Completed",
-    statusClass: "bg-stone-100 text-stone-600",
-    actionLabel: "Notified",
-    actionDisabled: true,
-    actionClass: "text-stone-400 cursor-not-allowed",
-  },
-  {
-    id: "#ORD-8817",
-    datetime: "Oct 24, 11:40 AM",
-    customer: "Olivia Vance",
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuCfyBbXHuWpXKgsFXMWwDTSaMWsIWVxDlj7R1E4OgBeM-X1jq4bq5TVLKSCZhBgQYz2ToEzueasTZSwSp7nnrhEjoAyNA5APygZrcAPUwUUqMyCjeF76jYAoJ-yFkmtJ38Oea-bgXzITN_hl-75DhewGE6e3le_szLZvoUg5P4P0JkSf1zlnUZsB4GRU_5xoJjea5wDYs9FWiv1-AbBxOE9HztgVOeKB_GcFXoOZ2-L1CQzVrv01fUjl_sMRV4La7P7kxpA1ViSi80",
-    items: "1x Caesar Salad, 1x Water",
-    total: "$18.50",
-    status: "Preparing",
-    statusClass: "bg-emerald-50 text-emerald-900",
-    actionLabel: "Notify Pick-up",
-    actionDisabled: false,
-    actionClass: "bg-secondary text-white hover:bg-secondary-container",
-  },
-];
+import { useState, useEffect } from "react";
+import { orderService, cardService, userService, foodService, paymentService, restaurantService } from "../apis/api";
 
 const OrderManagement = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [sidebarOpen, setSidebarOpen] =
+    useState(false);
 
-  const filteredOrders = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return orders;
-    return orders.filter((order) =>
-      [order.id, order.datetime, order.customer, order.items, order.total, order.status]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
+  const [orders, setOrders] =
+    useState([]);
+
+  const [currentPage, setCurrentPage] =
+    useState(0);
+
+  const [totalPages, setTotalPages] =
+    useState(0);
+
+  const [selectedOrder, setSelectedOrder] =
+    useState(null);
+
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
+
+  const [search, setSearch] =
+    useState("");
+
+const itemsPerPage = 10;
+
+const [searchValue, setSearchValue] = useState("");
+
+const [selectedFilter, setSelectedFilter] = useState(null); 
+const [totalElements, setTotalElements] =
+  useState(0); 
+
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+
+  const [foodsMap, setFoodsMap] = useState({});
+  const getImageUrl = (id) =>
+    id
+      ? `http://localhost:8080/catalog/images/${id}`
+      : "/no-image.png";
+  
+
+  const handleDelete =
+  async (orderId) => {
+
+    try {
+
+      await orderService.deleteOrder(
+        orderId
+      );
+
+      setOrders((prev) =>
+        prev.filter(
+          (order) =>
+            order.id !== orderId
+        )
+      );
+
+      setSelectedOrder(null);
+
+    } catch (error) {
+
+      console.error(
+        "DELETE ERROR",
+        error
+      );
+
+    }
+  };
+
+  const loadOrders = async (
+  isFilter = false
+) => {
+
+  try {
+
+    const response =
+      isFilter
+        ? await orderService.filterOrders({
+            filter: selectedFilter,
+            value:
+              searchValue || null,
+            page: currentPage,
+            size: 10,
+          })
+        : await orderService.getAllOrders({
+            page: currentPage,
+            size: 10,
+          });
+
+    const ordersData =
+      response.data.content || [];
+
+    const mappedOrders =
+      await Promise.all(
+        ordersData.map(
+          async (order) => {
+
+            let customerEmail =
+              `Client #${order.clientId}`;
+
+            try {
+
+              const clientResponse =
+                await userService.getInfoById(
+                  order.clientId
+                );
+
+              customerEmail =
+                clientResponse.data.email;
+
+            } catch (e) {
+
+              console.error(
+                "LOAD CLIENT ERROR",
+                e
+              );
+
+            }
+
+            return {
+
+              id: order.id,
+
+              number:
+                order.number,
+
+              datetime:
+                new Date(
+                  order.createdAt
+                ).toLocaleString(),
+
+              customer:
+                customerEmail,
+
+              avatar:
+                "/no-avatar.png",
+
+              items:
+                order.list
+                  ?.map(
+                    (item) =>
+                      `${item.quantity}x item`
+                  )
+                  .join(", ") ||
+                "No items",
+
+              total: order.totalPrice,
+
+              status:
+                order.readyForPickup
+                  ? "Is Ready"
+                  : order.status,
+
+              notified:
+                order.readyForPickup ||
+                false,
+
+            };
+
+          }
+        )
+      );
+
+    setOrders(mappedOrders);
+
+    setTotalPages(
+      response.data.totalPages || 0
     );
-  }, [search]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
-  const currentPageSafe = Math.min(currentPage, pageCount - 1);
+    setTotalElements(
+  response.data.totalElements || 0
+);
 
-  const paginatedOrders = useMemo(() => {
-    const start = currentPageSafe * itemsPerPage;
-    return filteredOrders.slice(start, start + itemsPerPage);
-  }, [filteredOrders, currentPageSafe, itemsPerPage]);
+  } catch (error) {
+
+    console.error(
+      "LOAD ORDERS ERROR",
+      error
+    );
+
+  }
+
+};
+
+  useEffect(() => {
+    loadOrders();
+  }, [
+    currentPage,
+    itemsPerPage,
+    search,
+  ]);
+
+const handleNotifyPickup = async (
+  e,
+  orderId
+) => {
+
+  e.stopPropagation();
+
+  const currentOrder = orders.find(
+    (order) => order.id === orderId
+  );
+
+  if (currentOrder?.notified) {
+    return;
+  }
+
+  try {
+
+    // 1. cancelOrder
+    await orderService.cancelOrder(
+  orderId,
+  true
+);
+
+    // 2. setStatus -> isReady
+    await orderService.updateStatus(
+      orderId,
+      "isReady"
+    );
+
+    // 3. update local state
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              status: "isReady",
+            }
+          : order
+      )
+    );
+
+  } catch (error) {
+
+    console.error(
+      "NOTIFY PICKUP ERROR",
+      error
+    );
+
+  }
+};
+
+ const openOrderModal = async (orderId) => {
+   try {
+     const response = await orderService.getOrder(orderId);
+ 
+     const orderData = response.data;
+ 
+     setSelectedOrder(orderData);
+ 
+     /*
+      * LOAD FOODS
+      */
+     const foods = {};
+ 
+     await Promise.all(
+       orderData.list.map(async (item) => {
+         try {
+           const foodResponse =
+             await foodService.getFoodById(
+               item.foodId
+             );
+ 
+           foods[item.foodId] =
+             foodResponse.data;
+ 
+         } catch (e) {
+           console.error(
+             `FOOD ${item.foodId} ERROR`,
+             e
+           );
+         }
+       })
+     );
+ 
+     setFoodsMap(foods);
+ 
+     /*
+      * PAYMENT
+      */
+     if (orderData.paymentId) {
+ 
+       try {
+         const paymentResponse =
+           await paymentService.getById(
+             orderData.paymentId
+           );
+ 
+         const cardId =
+           paymentResponse.data.cardId;
+ 
+         const cardResponse =
+           await cardService.getById(
+             cardId
+           );
+ 
+         const cardNumber =
+           cardResponse.data.number;
+ 
+         const last4 =
+           cardNumber.slice(-4);
+ 
+         setPaymentInfo(
+           `**** **** **** ${last4}`
+         );
+ 
+       } catch (e) {
+         console.error(
+           "PAYMENT LOAD ERROR",
+           e
+         );
+ 
+         setPaymentInfo("Card");
+       }
+ 
+     } else {
+       setPaymentInfo("Payment in cash");
+     }
+ 
+     /*
+      * DELIVERY
+      */
+     if (orderData.delivery?.address) {
+ 
+       setDeliveryAddress(
+         orderData.delivery.address
+       );
+ 
+     } else if (
+       orderData.delivery?.restaurantId
+     ) {
+ 
+       try {
+ 
+         const restaurantResponse =
+           await restaurantService.getById(
+             orderData.delivery.restaurantId
+           );
+ 
+         setDeliveryAddress(
+           restaurantResponse.data.address
+         );
+ 
+       } catch (e) {
+ 
+         console.error(
+           "RESTAURANT ERROR",
+           e
+         );
+ 
+         setDeliveryAddress(
+           "Address unavailable"
+         );
+       }
+ 
+     } else {
+ 
+       setDeliveryAddress(
+         "No address provided"
+       );
+     }
+ 
+     setIsModalOpen(true);
+ 
+   } catch (error) {
+ 
+     console.error(
+       "ORDER DETAILS ERROR",
+       error
+     );
+   }
+ };
+
+  const closeOrderModal = () => {
+    setIsModalOpen(false);
+    setSelectedOrder(null);
+  };
 
   const handleSidebarToggle = () => {
     setSidebarOpen((prev) => !prev);
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-   const closeSidebar = () => {
+  const closeSidebar = () => {
     setSidebarOpen(false);
   };
 
@@ -236,143 +481,573 @@ const OrderManagement = () => {
         </header>
 
         <div className="p-margin-mobile lg:p-margin-desktop">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-xl">
-            {orderStats.map((card) => (
-              <div key={card.label} className={`bg-white p-lg rounded-xl shadow-[0_10px_30px_rgba(27,48,34,0.05)] border border-stone-100 ${card.panelClass || ''}`}>
-                <div className="flex justify-between items-start mb-sm">
-                  <span className="text-label-sm font-label-sm text-stone-500 uppercase tracking-wider">{card.label}</span>
-                  <div className={`p-2 rounded-lg ${card.iconBg}`}>
-                    <span className="material-symbols-outlined">{card.icon}</span>
-                  </div>
-                </div>
-                <div className={`text-display-xl font-display-xl ${card.valueClass || 'text-primary'}`}>{card.value}</div>
-                <div className={`flex items-center gap-1 text-label-sm font-label-sm mt-2 ${card.badgeClass}`}>
-                  <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
-                  <span>{card.badge}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div className="bg-white rounded-xl shadow-[0_10px_30px_rgba(27,48,34,0.05)] border border-stone-100 overflow-hidden">
-            <div className="px-lg py-md border-b border-stone-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <h2 className="text-headline-md font-headline-md text-primary">Recent Orders</h2>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">search</span>
-                  <input
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-stone-200 focus:ring-secondary focus:border-secondary text-sm"
-                    placeholder="Search orders..."
-                    type="text"
-                    value={search}
-                    onChange={(event) => {
-                      setSearch(event.target.value);
-                      setCurrentPage(0);
-                    }}
-                  />
-                </div>
-                <button className="p-2 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50" type="button">
-                  <span className="material-symbols-outlined">filter_list</span>
-                </button>
-              </div>
-            </div>
+            <div className="px-lg py-md border-b border-stone-100 flex flex-col sm:flex-row justify-between items-center gap-4 flex-wrap">
+
+  <h2 className="text-headline-md font-headline-md text-primary">
+    Recent Orders
+  </h2>
+
+  {/* FILTER BUTTONS */}
+  <div className="flex flex-wrap gap-2 w-full sm:w-auto mb-2 sm:mb-0 lg:flex-1 sm:justify-end">
+
+    {/* CUSTOMER */}
+<button
+  type="button"
+  onClick={() =>
+    setSelectedFilter((prev) =>
+      prev === 1 ? null : 1
+    )
+  }
+  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
+    selectedFilter === 1
+      ? "bg-emerald-900 text-white"
+      : "border border-stone-200 text-stone-600 hover:bg-stone-50"
+  }`}
+>
+  <span className="material-symbols-outlined text-[16px]">
+    person
+  </span>
+
+  Customer
+</button>
+
+{/* DATE */}
+<button
+  type="button"
+  onClick={() =>
+    setSelectedFilter((prev) =>
+      prev === 2 ? null : 2
+    )
+  }
+  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
+    selectedFilter === 2
+      ? "bg-emerald-900 text-white"
+      : "border border-stone-200 text-stone-600 hover:bg-stone-50"
+  }`}
+>
+  <span className="material-symbols-outlined text-[16px]">
+    calendar_today
+  </span>
+
+  Date
+</button>
+
+{/* STATUS */}
+<button
+  type="button"
+  onClick={() =>
+    setSelectedFilter((prev) =>
+      prev === 3 ? null : 3
+    )
+  }
+  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
+    selectedFilter === 3
+      ? "bg-emerald-900 text-white"
+      : "border border-stone-200 text-stone-600 hover:bg-stone-50"
+  }`}
+>
+  <span className="material-symbols-outlined text-[16px]">
+    filter_alt
+  </span>
+
+  Status
+</button>
+
+  </div>
+
+  {/* SEARCH */}
+  <div className="flex gap-2 w-full sm:w-auto lg:flex-1 sm:justify-end">
+
+    <div className="relative flex-1 sm:w-64">
+
+      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
+        search
+      </span>
+
+      <input
+        value={searchValue}
+        onChange={(e) =>
+          setSearchValue(
+            e.target.value
+          )
+        }
+        className="w-full pl-10 pr-4 py-2 rounded-lg border border-stone-200 focus:ring-secondary focus:border-secondary text-sm"
+        placeholder="Search orders..."
+        type="text"
+      />
+
+    </div>
+
+    {/* FILTER REQUEST */}
+    <button
+      type="button"
+      onClick={() => {
+
+        // первая страница
+        setCurrentPage(0);
+
+        // фильтрация
+        loadOrders(true);
+
+      }}
+      className="p-2 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50"
+    >
+      <span className="material-symbols-outlined">
+        filter_list
+      </span>
+    </button>
+
+  </div>
+
+</div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-stone-50/50 text-label-sm font-label-sm text-stone-500 uppercase tracking-widest border-b border-stone-100">
-                    <th className="px-lg py-4">Order #</th>
-                    <th className="px-lg py-4">Date/Time</th>
-                    <th className="px-lg py-4">Customer</th>
-                    <th className="px-lg py-4">Items</th>
-                    <th className="px-lg py-4">Total Price</th>
-                    <th className="px-lg py-4">Status</th>
-                    <th className="px-lg py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-50 font-body-md text-sm">
-                  {paginatedOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-stone-50/40 transition-colors">
-                      <td className="px-lg py-4 font-bold text-primary">{order.id}</td>
-                      <td className="px-lg py-4 text-stone-500">{order.datetime}</td>
-                      <td className="px-lg py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-surface-container-high overflow-hidden">
-                            <img className="w-full h-full object-cover" alt={order.customer} src={order.avatar} />
-                          </div>
-                          <span>{order.customer}</span>
-                        </div>
-                      </td>
-                      <td className="px-lg py-4">{order.items}</td>
-                      <td className="px-lg py-4 font-bold">{order.total}</td>
-                      <td className="px-lg py-4">
-                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight ${order.statusClass}`}>{order.status}</span>
-                      </td>
-                      <td className="px-lg py-4 text-right">
-                        <button
-                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${order.actionClass}`}
-                          type="button"
-                          disabled={order.actionDisabled}
-                        >
-                          {order.actionLabel}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+  <thead>
+
+    <tr className="bg-stone-50/50 text-label-sm font-label-sm text-stone-500 uppercase tracking-widest border-b border-stone-100">
+
+      <th className="px-lg py-4">
+        Order #
+      </th>
+
+      <th className="px-lg py-4">
+        Date/Time
+      </th>
+
+      <th className="px-lg py-4">
+        Customer
+      </th>
+
+      <th className="px-lg py-4">
+        Total Price
+      </th>
+
+      <th className="px-lg py-4">
+        Status
+      </th>
+
+      <th className="px-lg py-4 text-right">
+        Actions
+      </th>
+
+    </tr>
+
+  </thead>
+
+  <tbody className="divide-y divide-stone-50 font-body-md text-sm">
+
+    {orders.map((order) => (
+
+      <tr
+        key={order.id}
+        onClick={() =>
+          openOrderModal(order.id)
+        }
+        className="hover:bg-stone-50/40 transition-colors cursor-pointer"
+      >
+
+        <td className="px-lg py-4 font-bold text-primary">
+          #{order.number}
+        </td>
+
+        <td className="px-lg py-4 text-stone-500">
+          {order.datetime}
+        </td>
+
+        <td className="px-lg py-4">
+
+          <div className="flex items-center gap-2">
+
+            <span>
+              {order.customer}
+            </span>
+
+          </div>
+
+        </td>
+
+        <td className="px-lg py-4 font-bold">
+  {order.total != null
+    ? `$${Number(order.total).toFixed(2)}`
+    : "—"}
+</td>
+
+        <td className="px-lg py-4">
+
+          <span
+            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight ${
+              order.status ===
+              "Is Ready"
+                ? "bg-secondary-fixed text-secondary"
+                : "bg-emerald-50 text-emerald-900"
+            }`}
+          >
+            {order.status}
+          </span>
+
+        </td>
+
+        <td className="px-lg py-4 text-right">
+
+          <button
+            type="button"
+            onClick={(e) =>
+              handleNotifyPickup(
+                e,
+                order.id
+              )
+            }
+            disabled={
+              order.status ===
+              "Is Ready"
+            }
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              order.status ===
+              "Is Ready"
+                ? "bg-stone-200 text-stone-500 cursor-not-allowed pointer-events-none"
+                : "bg-secondary text-white hover:bg-secondary-container"
+            }`}
+          >
+            Notify Pick-up
+          </button>
+
+        </td>
+
+      </tr>
+
+    ))}
+
+  </tbody>
+
+</table>
             </div>
 
-            <div className="px-lg py-lg bg-stone-50/30 border-t border-stone-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-stone-500">Items per page:</span>
-                <select
-                  className="bg-white border border-stone-200 rounded-lg text-sm px-2 py-1 focus:ring-secondary focus:border-secondary"
-                  value={itemsPerPage}
-                  onChange={(event) => {
-                    setItemsPerPage(Number(event.target.value));
-                    setCurrentPage(0);
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <span className="text-sm text-stone-500">Showing {Math.min(currentPageSafe * itemsPerPage + 1, filteredOrders.length)}-{Math.min((currentPageSafe + 1) * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} entries</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border border-stone-200 text-stone-400 hover:bg-stone-50"
-                  type="button"
-                  onClick={() => handlePageChange(Math.max(currentPageSafe - 1, 0))}
-                  disabled={currentPageSafe === 0}
-                >
-                  <span className="material-symbols-outlined">chevron_left</span>
-                </button>
-                {Array.from({ length: pageCount }, (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handlePageChange(index)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-bold ${index === currentPageSafe ? 'bg-primary text-white' : 'border border-transparent text-stone-600 hover:bg-stone-100'}`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-                <button
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50"
-                  type="button"
-                  onClick={() => handlePageChange(Math.min(currentPageSafe + 1, pageCount - 1))}
-                  disabled={currentPageSafe === pageCount - 1}
-                >
-                  <span className="material-symbols-outlined">chevron_right</span>
-                </button>
-              </div>
-            </div>
+<div className="px-lg py-lg bg-stone-50/30 border-t border-stone-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+
+  <div className="flex items-center gap-4">
+
+    <span className="text-sm text-stone-500">
+
+  Showing{" "}
+
+  {totalElements === 0
+    ? 0
+    : currentPage * 10 + 1}
+
+  -
+
+  {Math.min(
+    (currentPage + 1) * 10,
+    totalElements
+  )}
+
+  {" "}of{" "}
+
+  {totalElements}
+
+  {" "}entries
+
+</span>
+
+  </div>
+
+  <div className="flex items-center gap-1">
+
+    {/* PREV */}
+    <button
+      className="w-10 h-10 flex items-center justify-center rounded-lg border border-stone-200 text-stone-400 hover:bg-stone-50"
+      type="button"
+      onClick={() =>
+        setCurrentPage((prev) =>
+          Math.max(prev - 1, 0)
+        )
+      }
+      disabled={currentPage === 0}
+    >
+      <span className="material-symbols-outlined">
+        chevron_left
+      </span>
+    </button>
+
+    {/* PAGES */}
+    {Array.from(
+      { length: totalPages },
+      (_, index) => (
+
+        <button
+          key={index}
+          type="button"
+          onClick={() =>
+            setCurrentPage(index)
+          }
+          className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-bold ${
+            index === currentPage
+              ? "bg-primary text-white"
+              : "border border-transparent text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          {index + 1}
+        </button>
+
+      )
+    )}
+
+    {/* NEXT */}
+    <button
+      className="w-10 h-10 flex items-center justify-center rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50"
+      type="button"
+      onClick={() =>
+        setCurrentPage((prev) =>
+          Math.min(
+            prev + 1,
+            totalPages - 1
+          )
+        )
+      }
+      disabled={
+        currentPage ===
+        totalPages - 1
+      }
+    >
+      <span className="material-symbols-outlined">
+        chevron_right
+      </span>
+    </button>
+
+  </div>
+
+</div>
+            
           </div>
         </div>
       </div>
 
+
+
+{isModalOpen && selectedOrder && (
+  <div className="fixed inset-0 z-[60] bg-tertiary/40 backdrop-blur-sm flex items-center justify-center p-md">
+    
+    {/* MODAL */}
+    <div className="bg-surface-container-lowest w-full max-w-2xl rounded-xl shadow-[0px_20px_50px_rgba(27,48,34,0.15)] flex flex-col max-h-[90vh] overflow-hidden border border-outline-variant/30">
+
+      {/* HEADER */}
+      <div className="p-lg border-b border-surface-container-highest flex justify-between items-center">
+        <div>
+          <span className="font-label-sm text-secondary tracking-widest uppercase mb-xs block">
+            Order #{selectedOrder.number}
+          </span>
+
+          <h2 className="font-headline-md text-primary">
+            Order Details
+          </h2>
+        </div>
+
+        <button
+          onClick={closeOrderModal}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors"
+        >
+          <span className="material-symbols-outlined">
+            close
+          </span>
+        </button>
+      </div>
+
+      {/* CONTENT */}
+      <div className="overflow-y-auto p-lg space-y-xl">
+
+        {/* STATUS */}
+        <div className="flex flex-wrap items-center justify-between gap-md">
+          <div className="flex items-center gap-sm">
+
+            <div
+              className={`w-3 h-3 rounded-full ${
+                selectedOrder.status
+                  ? "bg-emerald-600"
+                  : "bg-yellow-500"
+              }`}
+            ></div>
+
+            <span
+              className={`font-body-md font-semibold ${
+                selectedOrder.status
+                  ? "text-emerald-900"
+                  : "text-yellow-700"
+              }`}
+            >
+              {selectedOrder.status}
+            </span>
+
+            <span className="text-on-surface-variant px-sm border-l border-outline-variant">
+              {new Date(
+                selectedOrder.createdAt
+              ).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* ITEMS */}
+        <div className="space-y-lg">
+          <h3 className="font-headline-md text-primary text-lg">
+            Menu Items
+          </h3>
+
+          <div className="divide-y divide-surface-container-highest">
+
+            {selectedOrder.list?.map((item) => {
+
+    const food = foodsMap[item.foodId];
+
+    return (
+      <div
+        key={item.id}
+        className="py-md flex gap-lg items-center"
+      >
+
+        {/* IMAGE */}
+        <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-stone-100">
+          <img
+            className="w-full h-full object-cover"
+            src={getImageUrl(item.foodId)}
+            alt={food?.name || "Food image"}
+          />
+        </div>
+
+        {/* INFO */}
+        <div className="flex-1">
+
+          <div className="flex justify-between items-start">
+
+            <div>
+              <h4 className="font-body-lg font-bold text-primary">
+                {food?.name || "Loading..."}
+              </h4>
+            </div>
+
+            <span className="font-price-label text-primary">
+  {item?.price != null
+    ? `$${Number(item.price).toFixed(2)}`
+    : "$0.00"}
+</span>
+          </div>
+
+          <div className="flex items-center gap-md mt-sm">
+            <span className="font-label-sm text-secondary bg-secondary/5 px-2 py-0.5 rounded">
+              Qty: {item.quantity}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  })}
+          </div>
+        </div>
+
+        {/* SUMMARY */}
+        <div className="bg-surface-container-low rounded-xl p-lg">
+         <span className="font-headline-md text-primary">
+                Comments:
+              </span>
+         {selectedOrder?.shortDescription && (
+                <p className="text-on-surface-variant font-body-md text-sm mb-sm">
+                  {selectedOrder.shortDescription}
+                </p>
+              )}
+
+          <div className="pt-md mt-md border-t border-outline-variant/20 flex justify-between items-end">
+              <span className="font-headline-md text-primary">
+                Total Amount
+              </span>
+              <span className="font-display-xl text-primary text-3xl">
+  {selectedOrder?.totalPrice != null
+    ? `$${Number(selectedOrder.totalPrice).toFixed(2)}`
+    : "$0.00"}
+</span>
+
+            </div>
+        </div>
+
+        {/* ADDRESS + PAYMENT */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+
+  {/* ADDRESS */}
+  <div>
+    <span className="font-label-sm text-secondary tracking-widest uppercase mb-sm block">
+      Delivery Address
+    </span>
+
+    <p className="font-body-md text-on-surface">
+      {deliveryAddress}
+    </p>
+  </div>
+
+  {/* PAYMENT */}
+  <div>
+    <span className="font-label-sm text-secondary tracking-widest uppercase mb-sm block">
+      Payment Method
+    </span>
+
+    <div className="flex items-center gap-sm">
+
+      <span className="material-symbols-outlined text-on-surface-variant">
+        {selectedOrder.paymentId
+          ? "credit_card"
+          : "payments"}
+      </span>
+
+      <p className="font-body-md text-on-surface">
+        {paymentInfo}
+      </p>
+    </div>
+  </div>
+</div>
+      </div>
+
+<button
+  type="button"
+  onClick={() =>
+    handleDelete(
+      selectedOrder.id
+    )
+  }
+  disabled={
+    !selectedOrder.isDeleted
+  }
+  className={`
+    flex-1 py-md font-epilogue font-bold
+    rounded-lg transition-all flex
+    items-center justify-center gap-sm
+    ${
+      selectedOrder.isDeleted
+        ? `
+          bg-secondary text-on-secondary
+          hover:opacity-90
+          active:scale-[0.98]
+        `
+        : `
+          bg-gray-300 text-gray-500
+          cursor-not-allowed opacity-60
+        `
+    }
+  `}
+>
+
+  <span
+    className="material-symbols-outlined text-sm"
+    data-icon="delete"
+  >
+    delete
+  </span>
+
+  Delete
+
+</button>
+      
+    </div>
+  </div>
+)}
     
     </div>
   );

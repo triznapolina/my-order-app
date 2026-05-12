@@ -11,16 +11,22 @@ export default function DigitalBistroUserManagement() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+ 
   const fetchData = useCallback(async () => {
-    try {
-      const res = await userService.getAll(page, size);
-      setData(res.data.content);
-      setTotalPages(res.data.totalPages);
-      setTotalElements(res.data.totalElements);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  }, [page, size]);
+  try {
+    const res = await userService.getAll(page, size);
+
+    const usersOnly = res.data.content.filter(
+      (user) => user.role === "ROLE_USER"
+    );
+
+    setData(usersOnly);
+    setTotalPages(res.data.totalPages);
+    setTotalElements(usersOnly.length);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  }
+}, [page, size]);
 
   useEffect(() => {
     fetchData();

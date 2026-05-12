@@ -61,6 +61,7 @@ export default function DigitalBistroCatalog() {
     setFormData({
       name: "",
       shortDescription: "",
+      ingredientsDescription: "",
       price: "",
       categoryId: "",
       isActive: true,
@@ -74,7 +75,13 @@ export default function DigitalBistroCatalog() {
     setFormData({
       name: food.name,
       shortDescription: food.shortDescription,
-      price: food.price,
+      ingredientsDescription: food.ingredientsDescription,
+       price:
+      food.price != null
+        ? Number(
+            food.price
+          ).toFixed(2)
+        : "",
       categoryId: food.categoryId,
       isActive: food.isActive || true,
     });
@@ -99,12 +106,15 @@ export default function DigitalBistroCatalog() {
   };
 
   const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+
+  const { name, value } = e.target;
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+
+};
 
 const handleImageChange = (e) => {
   const file = e.target.files?.[0];
@@ -113,27 +123,27 @@ const handleImageChange = (e) => {
     setSelectedImage(file);
 
     const preview = URL.createObjectURL(file);
-    setPreviewUrl(preview); // 👈 ВАЖНО
+    setPreviewUrl(preview);
   }
 };
   const handleSave = async (e) => {
     e.preventDefault();
     try {
       if (editingFood) {
-        // Обновление существующего блюда
         const updateData = {
           name: formData.name,
           shortDescription: formData.shortDescription,
           price: parseFloat(formData.price),
           categoryId: parseInt(formData.categoryId),
           isActive: formData.isActive,
+          ingredientsDescription: formData.ingredientsDescription,
         };
         await foodService.updateFood(editingFood.id, updateData, selectedImage);
       } else {
-        // Создание нового блюда
         const foodData = {
           name: formData.name,
           shortDescription: formData.shortDescription,
+          ingredientsDescription: formData.ingredientsDescription,
           price: parseFloat(formData.price),
           categoryId: parseInt(formData.categoryId),
           isActive: true,
@@ -156,6 +166,7 @@ const handleImageChange = (e) => {
     setFormData({
       name: "",
       shortDescription: "",
+      ingredientsDescription: "",
       price: "",
       categoryId: "",
       isActive: true,
@@ -577,20 +588,22 @@ const handleImageChange = (e) => {
                       Price ($)
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 font-bold">
-                        $
-                      </span>
-                      <input
-                        className="w-full bg-surface-container-lowest border border-stone-200 rounded-lg pl-8 pr-4 py-2.5 lg:py-3 focus:ring-2 focus:ring-secondary-container focus:border-secondary-container font-price-label text-base lg:text-price-label text-primary"
-                        step="0.01"
-                        type="number"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleFormChange}
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
+
+  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 font-bold">
+    $
+  </span>
+
+  <input
+  className="w-full bg-surface-container-lowest border border-stone-200 rounded-lg pl-8 pr-4 py-2.5 lg:py-3 focus:ring-2 focus:ring-secondary-container focus:border-secondary-container font-price-label text-base lg:text-price-label text-primary"
+  step="0.01"
+  type="number"
+  name="price"
+  value={formData.price ?? ""}
+  onChange={handleFormChange}
+  placeholder="0.00"
+  required
+/>
+</div>
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block font-label-sm text-[10px] lg:text-label-sm text-on-surface-variant uppercase mb-1.5 lg:mb-2">
@@ -606,30 +619,21 @@ const handleImageChange = (e) => {
                       required
                     />
                   </div>
-                  <div>
+                   <div className="sm:col-span-2">
                     <label className="block font-label-sm text-[10px] lg:text-label-sm text-on-surface-variant uppercase mb-1.5 lg:mb-2">
-                      Status
+                      Ingredients description
                     </label>
-                    <div className="relative">
-                      <select
-                        className="w-full bg-surface-container-lowest border border-stone-200 rounded-lg px-4 py-2.5 lg:py-3 focus:ring-2 focus:ring-secondary-container focus:border-secondary-container appearance-none"
-                        name="isActive"
-                        value={formData.isActive ? "true" : "false"}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            isActive: e.target.value === "true",
-                          }))
-                        }
-                      >
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                      </select>
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                        expand_more
-                      </span>
-                    </div>
+                    <textarea
+                      className="w-full bg-surface-container-lowest border border-stone-200 rounded-lg px-4 py-2.5 lg:py-3 focus:ring-2 focus:ring-secondary-container focus:border-secondary-container font-body-md text-primary resize-none"
+                      rows={3}
+                      name="ingredientsDescription"
+                      value={formData.ingredientsDescription}
+                      onChange={handleFormChange}
+                      placeholder="Enter ingredients description"
+                      required
+                    />
                   </div>
+                  
                 </div>
                 <div className="pt-6 lg:pt-8 flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-4 border-t border-stone-100 mt-auto">
                   <button

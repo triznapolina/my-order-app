@@ -1,4 +1,4 @@
-﻿import { useParams } from "react-router-dom";
+﻿import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import { orderService, restaurantService, userService, cardService, orderItemService, deliveryService, paymentService } from "../apis/api";
@@ -20,12 +20,13 @@ const [shortDescription, setShortDescription] = useState("");
 const [deliveryType, setDeliveryType] = useState("client"); 
 
 const [byCard, setByCard] = useState(false);
+const navigate = useNavigate();
+
 
 const getImageUrl = (id) =>
   id ? `http://localhost:8080/catalog/images/${id}` : "/no-image.png";
 
 
-// 🔁 единый рефетч заказа + инфы
 const refetchOrder = async () => {
   if (!id) return;
 
@@ -44,10 +45,10 @@ const parseJwt = (token) => {
   return JSON.parse(atob(token.split(".")[1]));
 };
 
-// 🚀 первый загрузчик (ВСЁ сразу)
 useEffect(() => {
   document.title = "Digital Bistro";
 
+  loadReadyOrders();
   const init = async () => {
     try {
 
@@ -105,18 +106,81 @@ const updateQuantity = async (foodId, quantity) => {
 
 
 // 🗑 удаление
-const removeItem = async (foodId) => {
+const removeItem = async (
+  foodId
+) => {
+
   try {
-    await orderItemService.deleteItem(foodId);
-    refetchOrder();
+
+    await orderItemService.deleteItem(
+      id,
+      foodId
+    );
+
+    setOrder((prev) => ({
+
+      ...prev,
+
+      list: (
+        prev?.list || []
+      ).filter(
+        (item) =>
+          item.foodId !== foodId
+      )
+
+    }));
+
+    console.log(prev?.list);
+
   } catch (e) {
+
     console.error(e);
+
   }
 };
 
-const [isOrderResultOpen, setIsOrderResultOpen] = useState(false);
 
-// 🛒 оформление заказа
+const [isOrderResultOpen, setIsOrderResultOpen] = useState(false);
+const [createdOrderNumber, setCreatedOrderNumber] = useState(null);
+const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [readyOrdersCount, setReadyOrdersCount] = useState(0);
+
+   const token = localStorage.getItem("token");
+
+  const clientId = token
+    ? JSON.parse(atob(token.split(".")[1])).id
+    : null;
+
+  const loadReadyOrders = async () => {
+
+  try {
+
+    const response =
+      await orderService.getOrdersByStatus(
+        clientId,
+        "isReady"
+      );
+
+    const orders =
+      (response.data || []).filter(
+        (order) =>
+          order.isDeleted === false
+      );
+
+    setReadyOrdersCount(
+      orders.length
+    );
+
+  } catch (error) {
+
+    console.error(
+      "LOAD READY ORDERS ERROR",
+      error
+    );
+
+  }
+};
+
 const placeOrder = async () => {
   try {
 
@@ -135,7 +199,7 @@ const placeOrder = async () => {
       await deliveryService.create(id, {
         orderId: id,
 
-        deliveryAddress:
+        address:
           deliveryType === "client"
             ? clientAddress
             : null,
@@ -170,56 +234,109 @@ const placeOrder = async () => {
       }
     }
 
-  
+
+    const updatedOrder =
   await orderService.updateOrder(id, {
-  paymentId: selectedCard?.id || null,
+    paymentId: selectedCard?.id || null,
 
-  delivery: {
-    address:
-      deliveryType === "client"
-        ? clientAddress
-        : null,
+    delivery: {
+      address:
+        deliveryType === "client"
+          ? clientAddress
+          : null,
 
-    restaurantId:
-      deliveryType === "restaurant"
-        ? selectedAddress?.id
-        : null,
+      restaurantId:
+        deliveryType === "restaurant"
+          ? selectedAddress?.id
+          : null,
 
-    byCard: !!selectedCard,
-  },
+      byCard: !!selectedCard,
+    },
 
-  shortDescription,
-});
+    shortDescription,
+  });
 
-    setIsOrderResultOpen(true);
+console.log(updatedOrder);
+    
+    setCreatedOrderNumber(
+  updatedOrder?.data?.number ??
+  updatedOrder?.number ??
+  id
+);
+
+setIsOrderResultOpen(true);
 
   } catch (e) {
     console.error(e);
   }
 };
 
+  const totalQuantity =
+    order?.list?.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    ) || 0;
+
+  const toggleDrawer = () => {
+    setIsDrawerOpen((prev) => !prev);
+
+    document.body.style.overflow = !isDrawerOpen
+      ? "hidden"
+      : "";
+  };
+
+  const openDetails = () => {
+  navigate("/client-catalog");
+};
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-md">
       {/* TopAppBar */}
-      <header className="bg-[#FDFCF0] dark:bg-stone-950 border-b border-stone-200/50 dark:border-stone-800 shadow-[0_2px_15px_-3px_rgba(27,48,34,0.05)] docked full-width top-0 sticky z-50">
-      <div className="flex justify-between items-center w-full px-8 md:px-12 h-24 max-w-screen-2xl mx-auto">
-      <div className="text-2xl font-black text-emerald-900 dark:text-emerald-400 tracking-widest font-['Epilogue']">LUXE BISTRO</div>
-      <nav className="hidden md:flex items-center space-x-8">
-      <a className="font-['Epilogue'] tracking-tight text-sm uppercase font-semibold text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Menu</a>
-      <a className="font-['Epilogue'] tracking-tight text-sm uppercase font-semibold text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Reservations</a>
-      <a className="font-['Epilogue'] tracking-tight text-sm uppercase font-semibold text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Our Story</a>
-      <a className="font-['Epilogue'] tracking-tight text-sm uppercase font-semibold text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-300" href="#">Gift Cards</a>
-      </nav>
-      <div className="flex items-center space-x-6">
-      <button className="text-emerald-900 dark:text-emerald-400 hover:text-emerald-700 transition-colors">
-      <span className="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
-      </button>
-      <button className="text-emerald-900 dark:text-emerald-400 hover:text-emerald-700 transition-colors">
-      <span className="material-symbols-outlined" data-icon="person">person</span>
-      </button>
-      </div>
-      </div>
+      <header className="bg-[#FDFCF8] text-[#1B3022] font-epilogue tracking-tight border-b border-stone-200 shadow-sm flex justify-between items-center w-full px-4 md:px-8 py-4 sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <button
+            className="p-2 hover:bg-surface-container-high rounded-full transition-colors lg:hidden"
+            onClick={toggleDrawer}
+          >
+            <span className="material-symbols-outlined text-primary">menu</span>
+          </button>
+          <div onClick={openDetails} className="text-xl md:text-2xl font-bold text-[#1B3022]">Bistro Provence</div>
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-6">
+          
+         <div className="flex gap-2 md:gap-4">
+  <button
+  className="relative p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200"
+>
+  <span className="material-symbols-outlined">shopping_cart</span>
+
+ {totalQuantity > 0 && (
+  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
+    {totalQuantity}
+  </span>
+)}
+</button>
+
+  <button 
+  onClick={() => {
+    navigate(`/user-profile`);
+  }}
+  className="relative p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200">
+
+  <span className="material-symbols-outlined">
+    account_circle
+  </span>
+
+  {readyOrdersCount > 0 && (
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+      {readyOrdersCount}
+    </span>
+  )}
+
+</button>
+</div>
+        </div>
       </header>
       <main className="max-w-screen-2xl mx-auto px-8 md:px-12 py-xl">
       <div className="flex flex-col lg:flex-row gap-gutter">
@@ -330,7 +447,6 @@ const placeOrder = async () => {
 
   <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
 
-    {/* 🏠 CLIENT ADDRESS */}
     <div onClick={() => {
     setDeliveryType("client");
     setSelectedAddress(clientAddress);
@@ -363,7 +479,6 @@ const placeOrder = async () => {
     </div>
 
 
-    {/* 🏢 RESTAURANTS DROPDOWN */}
     <div
   onClick={() => setDeliveryType("restaurant")}
   className={`p-lg rounded-xl flex items-start gap-md transition-colors cursor-pointer relative ${
@@ -404,7 +519,6 @@ const placeOrder = async () => {
     </div>
   </div>
 
-  {/* ✅ ГАЛОЧКА — теперь на уровне карточки */}
   {deliveryType === "restaurant" && (
     <span className="absolute top-4 right-4 material-symbols-outlined text-primary">
       check_circle
@@ -589,31 +703,103 @@ const placeOrder = async () => {
 
 
       {isOrderResultOpen && (
-  <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div className="bg-white dark:bg-stone-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-stone-200 dark:border-stone-800">
-      
-      <div className="flex flex-col items-center text-center">
-        <span className="material-symbols-outlined text-green-500 text-6xl mb-4">
-          check_circle
-        </span>
+  <div className="fixed inset-0 z-50 flex items-end justify-center bg-primary-container/40 backdrop-blur-sm p-4">
+    <div className="bg-white dark:bg-stone-900 w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl relative border border-stone-200 dark:border-stone-800">
 
-        <h2 className="text-2xl font-bold text-primary mb-2">
-          Order Created
+      <div className="absolute inset-0 pointer-events-none opacity-30 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_60%)]" />
+
+      <div className="relative p-8 flex flex-col items-center text-center">
+
+        <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 shadow-lg">
+          <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-500 text-[40px]">
+            check_circle
+          </span>
+        </div>
+
+        <h2 className="text-3xl font-bold text-primary mb-3 leading-tight">
+          Order Successfully Placed!
         </h2>
 
-        <p className="text-on-surface-variant mb-6">
-          Your order has been successfully placed.
+        <p className="text-on-surface-variant mb-8">
+          Your meal is being prepared with care.
+          <br />
+
+          {createdOrderNumber && (
+            <span className="font-bold text-primary">
+              Order number #{createdOrderNumber}
+            </span>
+          )}
         </p>
 
-        <button
-          onClick={() => {
-            setIsOrderResultOpen(false);
-            window.location.href = "/order-result-created";
-          }}
-          className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
-        >
-          Continue
-        </button>
+        <div className="w-full h-32 mb-8 relative rounded-2xl overflow-hidden">
+          <img
+            className="w-full h-full object-cover"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh6oOYum8z9AFLxnhf4IusYjqxdXdFc7gekVw6xyi_1e9kc2iofqX3wa7UsFAeKR7nyPjSdTcdHz3TEWkdfU_0apHGRx54nAS9SrkHml9zc7hvV8ATHSwXxbKQr0nDI3KggGYpNBga6ZpEiFBvmu063poJUS4xw7-S3oHQoSMLBIoCVCworz6j0i6_HsBqpMV5EmmO-lMeSxe-4BI4XWwNCPkRVxsrNzKuIxOS-v84YU5J2IO2c_XFeWijTZ6JZchTCziWiNiQPkA"
+            alt="Chef plating a gourmet dish"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        </div>
+
+        <div className="w-full space-y-4">
+
+          <button
+  onClick={() => {
+
+    setIsOrderResultOpen(false);
+
+    window.location.href =
+      "/user-profile";
+
+  }}
+  className="
+    w-full bg-primary text-on-primary
+    font-semibold py-4 rounded-xl
+    hover:opacity-90
+    active:scale-[0.98]
+    transition-all flex
+    items-center justify-center gap-2
+  "
+>
+
+  <span
+    className="
+      material-symbols-outlined
+    "
+  >
+    person
+  </span>
+
+  User Profile
+
+</button>
+
+<button
+  onClick={() => {
+
+    setIsOrderResultOpen(false);
+
+    window.location.href =
+      "/client-catalog";
+
+  }}
+  className="
+    w-full bg-stone-100
+    dark:bg-stone-800
+    text-stone-900
+    dark:text-white
+    font-semibold py-4
+    rounded-xl hover:opacity-90
+    active:scale-[0.98]
+    transition-all
+  "
+>
+
+  Back to Catalog
+
+</button>
+
+        </div>
       </div>
     </div>
   </div>

@@ -4,210 +4,311 @@ import { foodService, categoryService, orderService, orderItemService } from "..
 import { useNavigate } from "react-router-dom";
 
 const ClientCatalogManagement = () => {
+  const navigate = useNavigate();
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortOrder, setSortOrder] = useState('Recommended');
-  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const itemsPerPage = 9;
+
+  const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(false);
+
   const [order, setOrder] = useState(null);
+  const [orderId, setOrderId] = useState(null);
+
+  const [readyOrdersCount, setReadyOrdersCount] = useState(0);
+
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+
+
+  document.title = "Menu Catalog | Bistro Provence";
+
+  const token = localStorage.getItem("token");
+
+  const clientId = token
+    ? JSON.parse(atob(token.split(".")[1])).id
+    : null;
 
   useEffect(() => {
+    loadFoods();
+  }, [currentPage]);
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    initOrder();
+
+    loadReadyOrders();
+  }, [clientId]);
+
+
+  const loadReadyOrders = async () => {
+
+  try {
+
+    const response =
+      await orderService.getOrdersByStatus(
+        clientId,
+        "isReady"
+      );
+
+    const orders =
+      (response.data || []).filter(
+        (order) =>
+          order.isDeleted === false
+      );
+
+    setReadyOrdersCount(
+      orders.length
+    );
+
+  } catch (error) {
+
+    console.error(
+      "LOAD READY ORDERS ERROR",
+      error
+    );
+
+  }
+};
+
   const initOrder = async () => {
+  try {
+    const res =
+      await orderService.getNonCompletedByClient(clientId);
+
+    if (!res.data) {
+      setOrder(null);
+      setOrderId(null);
+
+      localStorage.removeItem("orderId");
+
+      return;
+    }
+
+    const currentOrderId = res.data.id;
+
+    setOrderId(currentOrderId);
+
+    localStorage.setItem(
+      "orderId",
+      currentOrderId
+    );
+
+    const orderRes = await orderService.getOrder(currentOrderId);
+
+    setOrder(orderRes.data);
+
+  } catch (e) {
+    console.error("INIT ORDER ERROR:", e);
+
+    setOrder(null);
+    setOrderId(null);
+
+    localStorage.removeItem("orderId");
+  }
+};
+
+  const loadFoods = async () => {
     try {
+      setLoading(true);
 
-      document.title = 'Menu Catalog | Bistro Provence';
+      const res = await foodService.getAllFoods(
+        currentPage - 1,
+        itemsPerPage
+      );
 
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const payload = parseJwt(token);
-      const currentClientId = payload.id || payload.sub;
-
-      setClientIdState(currentClientId);
-
-      // 🔥 проверяем есть ли уже заказ в localStorage
-      const savedOrderId = localStorage.getItem("orderId");
-
-      if (savedOrderId) {
-        setOrderId(savedOrderId);
-
-        const res = await orderService.getOrder(savedOrderId);
-        setCart(res.data.list || []);
-        return;
-      }
-
-      // 🔥 ищем незавершённый заказ на бэке
-      const res = await orderService.findIsNotCompleted(currentClientId);
-
-      if (res.data) {
-        setOrderId(res.data.id);
-        setCart(res.data.list || []);
-
-        localStorage.setItem("orderId", res.data.id);
-      }
-
+      setMenuItems(res.data.content);
+      setTotalItems(res.data.totalElements);
     } catch (e) {
-      console.error("INIT ORDER ERROR:", e);
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  initOrder();
-}, []);
-
-
-useEffect(() => {
-  const loadOrder = async () => {
-    const savedOrderId = localStorage.getItem("orderId");
-
-    if (!savedOrderId) return;
-
+  const loadCategories = async () => {
     try {
-      const res = await orderService.getOrder(savedOrderId);
-      setOrder(res.data);
-      setOrderId(savedOrderId);
+      const res = await categoryService.getAll(0, 100);
+
+      setCategories(res.data.content || res.data);
     } catch (e) {
       console.error(e);
     }
   };
 
-  loadOrder();
-}, []);
+  const handleCategoryClick =
+async (categoryId) => {
 
-  const toggleDrawer = () => {
-    setIsDrawerOpen(!isDrawerOpen);
-    if (!isDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+  try {
+
+    setSelectedCategoryId(
+      categoryId
+    );
+
+    setCurrentPage(1);
+
+    const res =
+      await foodService.getByCategory(categoryId);
+
+    const foods =
+      res.data.content ||
+      res.data ||
+      [];
+
+    setMenuItems(foods);
+
+    setTotalItems(
+      foods.length
+    );
+
+  } catch (e) {
+
+    console.error(e);
+
+  }
+};
+
+
+  const formatDecimal = (value) => {
+
+  if (!value) {
+    return null;
+  }
+
+  return Number(value)
+    .toFixed(2);
+};
+
+
+  const handlePriceFilter =
+  async () => {
+
+    try {
+
+      const formattedMin =
+        formatDecimal(
+          minPrice
+        );
+
+      const formattedMax =
+        formatDecimal(
+          maxPrice
+        );
+
+      setMinPrice(
+        formattedMin || ""
+      );
+
+      setMaxPrice(
+        formattedMax || ""
+      );
+
+      let res;
+
+      if (
+        selectedCategoryId
+      ) {
+
+        res =
+          await foodService
+            .getByCategoryAndPriceRange(
+              selectedCategoryId,
+              formattedMin || "0.00",
+              formattedMax || "999999.99"
+            );
+
+      }
+
+      else {
+
+        res =
+          await foodService
+            .getByPriceRange(
+              formattedMin || "0.00",
+              formattedMax || "999999.99"
+            );
+      }
+
+      const foods =
+  res.data.content ||
+  res.data ||
+  [];
+
+setMenuItems(foods);
+
+setTotalItems(
+  foods.length
+);
+
+      setCurrentPage(1);
+
+    } catch (e) {
+
+      console.error(e);
+
+    }
+};
+
+  const handleSearch = async (value) => {
+    try {
+      const res = await foodService.searchByName(value);
+
+      setMenuItems(res.data);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const [menuItems, setMenuItems] = useState([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [loading, setLoading] = useState(false);
-
-
-  useEffect(() => {
-  loadFoods();
-}, [currentPage, itemsPerPage]);
-
-const loadFoods = async () => {
-  try {
-    setLoading(true);
-    const res = await foodService.getAllFoods(currentPage - 1, itemsPerPage);
-
-    setMenuItems(res.data.content);
-    setTotalItems(res.data.totalElements);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
-};
-
- const [categories, setCategories] = useState([]);
-
- useEffect(() => {
-  loadCategories();
-}, []);
-
-const loadCategories = async () => {
-  try {
-    const res = await categoryService.getAll(0, 100); 
-
-    setCategories(res.data.content || res.data);
-  } catch (e) {
-    console.error("CATEGORY ERROR:", e);
-  }
-};
-
-
-const handleCategoryClick = async (categoryId) => {
-  try {
-    const res = await foodService.getByCategory(categoryId);
-    setMenuItems(res.data);
-  } catch (e) {
-    console.error(e);
-  }
-};
-
-const handlePriceFilter = async (min, max) => {
-  try {
-    const res = await foodService.getByPriceRange(min, max);
-    setMenuItems(res.data);
-  } catch (e) {
-    console.error(e);
-  }
-};
-
-
-const handleSearch = async (value) => {
-  try {
-    const res = await foodService.searchByName(value);
-    setMenuItems(res.data);
-  } catch (e) {
-    console.error(e);
-  }
-};
-
-const parseJwt = (token) => {
-  return JSON.parse(atob(token.split(".")[1]));
-};
-
-// usage
-const token = localStorage.getItem("token");
-const payload = parseJwt(token);
-const clientId = payload.id; // или sub
-
-const [orderId, setOrderId] = useState(null);
-
-const [cart, setCart] = useState([]);
-
-const [clientIdState, setClientIdState] = useState(null);
-
 const addToCart = async (item) => {
   try {
-    let currentOrderId = orderId || localStorage.getItem("orderId");
+    let currentOrderId = orderId;
 
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    let currentClientId = clientId;
-
-    if (!currentClientId) {
-      const res = await authService.extractId(token);
-      currentClientId = res.data;
-      setClientId(currentClientId);
-    }
-
-    // 🛒 создаём заказ если нет
     if (!currentOrderId) {
       const orderRes = await orderService.createOrder({
-        clientId: currentClientId,
-        restaurantId: null,
-        paymentId: null,
-        deliveryId: null,
-        shortDescription: "Draft order",
+        clientId,
+        shortDescription: " ",
       });
 
       currentOrderId = orderRes.data.id;
+
       setOrderId(currentOrderId);
-      localStorage.setItem("orderId", currentOrderId);
+
+      localStorage.setItem(
+        "orderId",
+        currentOrderId
+      );
     }
 
-    // 🔍 ищем item в текущем заказе
-    const existingItem = order?.list?.find(
-      (i) => i.foodId === item.id
+    const orderRes = await orderService.getOrder(currentOrderId);
+
+    const currentOrder = orderRes.data;
+
+    const existingItem = currentOrder?.list?.find(
+      (i) => Number(i.foodId) === Number(item.id)
     );
 
     if (existingItem) {
-      // ➕ UPDATE (увеличиваем количество)
       await orderItemService.updateItem({
         orderId: currentOrderId,
         foodId: item.id,
         quantity: existingItem.quantity + 1,
       });
-    } else {
-      // ➕ CREATE (новый item)
+    }
+
+    else {
       await orderItemService.createItem({
         orderId: currentOrderId,
         foodId: item.id,
@@ -215,36 +316,60 @@ const addToCart = async (item) => {
       });
     }
 
-    // 🔄 обновляем заказ с бэка (важно!)
-    const updated = await orderService.getOrder(currentOrderId);
+    const updated =
+      await orderService.getOrder(currentOrderId);
+
     setOrder(updated.data);
 
   } catch (e) {
-    console.error(e);
+    console.error("ADD TO CART ERROR:", e);
   }
 };
 
-const navigate = useNavigate();
+  const toggleDrawer = () => {
+    setIsDrawerOpen((prev) => !prev);
 
-const openDetails = (id) => {
-  navigate(`/details-menu-dish/${id}`);
-};
+    document.body.style.overflow = !isDrawerOpen
+      ? "hidden"
+      : "";
+  };
 
-const getImageUrl = (id) =>
-  id ? `http://localhost:8080/catalog/images/${id}` : "/no-image.png";
+  const openDetails = (id) => {
+    navigate(`/details-menu-dish/${id}`);
+  };
 
-const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const changePage = (page) => {
+    setCurrentPage(page);
+  };
 
-const changePage = (page) => {
-  setCurrentPage(page);
-};
+  const getImageUrl = (id) =>
+    id
+      ? `http://localhost:8080/catalog/images/${id}`
+      : "/no-image.png";
 
-const totalQuantity =
-  order?.list?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+  const totalQuantity =
+    order?.list?.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    ) || 0;
+
+
+  const totalPages =
+  Math.max(
+    1,
+    Math.ceil(
+      (totalItems || 0) /
+      itemsPerPage
+    )
+  );
+
+const paginatedItems =
+  Array.isArray(menuItems)
+    ? menuItems
+    : [];
 
   return (
     <div className="light bg-surface text-on-background selection:bg-primary-fixed-dim">
-      {/* Navigation Drawer Overlay */}
       <div
         className={`fixed inset-0 bg-black/40 z-[60] transition-opacity duration-300 ${
           isDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -252,7 +377,6 @@ const totalQuantity =
         onClick={toggleDrawer}
       />
 
-      {/* Navigation Drawer (Main Menu) */}
       <aside
         className={`fixed top-0 left-0 h-full w-80 bg-[#FDFCF8] shadow-2xl z-[70] flex flex-col p-6 overflow-y-auto transform transition-transform duration-300 ${
           isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
@@ -268,60 +392,161 @@ const totalQuantity =
           </button>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-headline-md font-headline-md text-primary mb-1">Main Menu</h2>
-          <p className="text-label-sm text-on-surface-variant">Explore our curated selections</p>
-        </div>
+
+        <div className="pt-6 border-t border-stone-200">
+
+  <h3
+    className="
+      text-label-sm uppercase
+      tracking-widest
+      text-on-surface-variant
+      mb-4
+    "
+  >
+    Price Range
+  </h3>
+
+  <div className="flex flex-col gap-3">
+
+    <div
+      className="
+        flex items-center
+        justify-between gap-2
+      "
+    >
+
+     <input
+  className="
+    w-full bg-surface border
+    border-outline-variant
+    rounded-lg p-2
+    focus:ring-primary
+    focus:border-primary
+    text-body-md
+  "
+  placeholder="0.00"
+  type="number"
+  step="0.01"
+  min="0"
+  value={minPrice}
+  onChange={(e) =>
+    setMinPrice(
+      e.target.value.replace(
+        ",",
+        "."
+      )
+    )
+  }
+/>
+
+      <span
+        className="text-stone-400"
+      >
+        —
+      </span>
+
+      <input
+        className="
+          w-full bg-surface border
+          border-outline-variant
+          rounded-lg p-2
+          focus:ring-primary
+          focus:border-primary
+          text-body-md
+        "
+        placeholder="9999.99"
+        type="number"
+        step="0.01"
+        min="0"
+        value={maxPrice}
+        onChange={(e) =>
+          setMaxPrice(
+            e.target.value.replace(
+        ",",
+        "."
+      )
+          )
+        }
+      />
+
+    </div>
+
+    <button
+      onClick={handlePriceFilter}
+      className="
+        w-full bg-primary text-white
+        py-3 rounded-lg font-bold
+        hover:bg-opacity-90
+        transition-colors
+      "
+    >
+      Apply Filters
+    </button>
+
+  </div>
+
+</div>
 
         <div className="space-y-6">
-          {/* Navigation Tabs */}
-          <div className="space-y-2">
-            <button className="w-full flex items-center gap-3 p-3 bg-[#1B3022] text-white rounded-lg font-semibold transition-all duration-300 text-left hover:shadow-md">
-              <span className="material-symbols-outlined">restaurant_menu</span>
-              <span>Our Menu</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left">
-              <span className="material-symbols-outlined">event_available</span>
-              <span>Reservations</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left">
-              <span className="material-symbols-outlined">history_edu</span>
-              <span>Our Story</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 text-stone-600 hover:bg-stone-50 hover:pl-2 transition-all duration-300 text-left">
-              <span className="material-symbols-outlined">auto_awesome</span>
-              <span>Seasonal Specials</span>
-            </button>
-          </div>
 
-          {/* Food Categories Section */}
-          <div className="pt-6 border-t border-stone-200">
-            <h3 className="text-label-sm uppercase tracking-widest text-on-surface-variant mb-4">
-              Categories
-            </h3>
-            <div className="space-y-1">
-              {categories.map((category) => (
-  <button
-    key={category.id}
-    onClick={() => handleCategoryClick(category.id)}
-  >
-    {category.name}
-  </button>
-))}
-            </div>
-          </div>
+<div className="space-y-1">
 
-          {/* Account Section */}
-          <div className="pt-6 border-t border-stone-200">
-            <h3 className="text-label-sm uppercase tracking-widest text-on-surface-variant mb-4">
-              Account
-            </h3>
-            <div className="flex items-center gap-3 p-3">
-              <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
-                <span className="material-symbols-outlined text-on-primary-container">person</span>
-              </div>
-            </div>
-          </div>
+  {categories.map((category) => (
+
+    <button
+      key={category.id}
+      onClick={() =>
+        handleCategoryClick(
+          category.id
+        )
+      }
+      className={`
+        w-full flex items-center
+        gap-3 p-3 rounded-lg
+        transition-all duration-300
+        text-left
+
+        ${
+          selectedCategoryId ===
+          category.id
+
+            ? `
+              text-[#D4A373]
+              bg-surface-container
+              font-bold
+            `
+
+            : `
+              text-stone-600
+              dark:text-stone-400
+              hover:bg-stone-50
+              dark:hover:bg-stone-900
+              hover:pl-2
+            `
+        }
+      `}
+    >
+
+      <span
+        className="
+          material-symbols-outlined
+        "
+      >
+        restaurant_menu
+      </span>
+
+      <span className="text-sm">
+
+        {category.name}
+
+      </span>
+
+    </button>
+
+  ))}
+
+</div>
+
         </div>
       </aside>
 
@@ -336,21 +561,6 @@ const totalQuantity =
           </button>
           <div className="text-xl md:text-2xl font-bold text-[#1B3022]">Bistro Provence</div>
         </div>
-
-        <nav className="hidden md:flex items-center gap-8">
-          <a
-            href="#"
-            className="text-[#1B3022] border-b-2 border-[#D4A373] pb-1 hover:text-[#1B3022] transition-colors"
-          >
-            Menu
-          </a>
-          <a href="#" className="text-stone-500 font-medium hover:text-[#1B3022] transition-colors">
-            Reservations
-          </a>
-          <a href="#" className="text-stone-500 font-medium hover:text-[#1B3022] transition-colors">
-            Our Story
-          </a>
-        </nav>
 
         <div className="flex items-center gap-2 md:gap-6">
           <div className="hidden lg:flex items-center bg-surface-container px-4 py-2 rounded-full">
@@ -385,9 +595,23 @@ const totalQuantity =
 )}
 </button>
 
-  <button className="p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200">
-    <span className="material-symbols-outlined">account_circle</span>
-  </button>
+  <button 
+  onClick={() => {
+    navigate(`/user-profile`);
+  }}
+  className="relative p-2 hover:text-[#1B3022] transition-transform active:scale-95 duration-200">
+
+  <span className="material-symbols-outlined">
+    account_circle
+  </span>
+
+  {readyOrdersCount > 0 && (
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+      {readyOrdersCount}
+    </span>
+  )}
+
+</button>
 </div>
         </div>
       </header>
@@ -395,56 +619,159 @@ const totalQuantity =
       <div className="max-w-[1440px] mx-auto flex min-h-screen">
         {/* SideNavBar / Refine Menu (Desktop) */}
         <aside className="bg-[#FDFCF8] text-[#1B3022] font-epilogue text-sm border-r border-stone-100 fixed left-0 top-[73px] h-[calc(100vh-73px)] overflow-y-auto p-6 hidden lg:flex flex-col w-64 z-30">
-          <div className="mb-8">
-            <h2 className="text-headline-md font-headline-md text-primary mb-1">Refine Menu</h2>
-            <p className="text-label-sm text-on-surface-variant">Curate your dining experience</p>
-          </div>
-
           <div className="space-y-6">
-            {/* Shared Navigation Tabs */}
            
+          <div className="pt-6 border-t border-stone-200">
 
-            {/* Price Range Filter */}
-            <div className="pt-6 border-t border-stone-200">
-              <h3 className="text-label-sm uppercase tracking-widest text-on-surface-variant mb-4">
-                Price Range
-              </h3>
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-2">
-                  <input
-                    className="w-full bg-surface border border-outline-variant rounded-lg p-2 focus:ring-primary focus:border-primary text-body-md"
-                    placeholder="Min"
-                    type="number"
-                  />
-                  <span className="text-stone-400">—</span>
-                  <input
-                    className="w-full bg-surface border border-outline-variant rounded-lg p-2 focus:ring-primary focus:border-primary text-body-md"
-                    placeholder="Max"
-                    type="number"
-                  />
-                </div>
-                <button className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-
-            {/* Food Categories Section */}
-            <div className="pt-6 border-t border-stone-200">
-              <h3 className="text-label-sm uppercase tracking-widest text-on-surface-variant mb-4">
-                Food Categories
-              </h3>
-              <div className="space-y-1">
-                {categories.map((category) => (
-  <button
-    key={category.id}
-    onClick={() => handleCategoryClick(category.id)}
+  <h3
+    className="
+      text-label-sm uppercase
+      tracking-widest
+      text-on-surface-variant
+      mb-4
+    "
   >
-    {category.name}
-  </button>
-))}
-              </div>
-            </div>
+    Price Range
+  </h3>
+
+  <div className="flex flex-col gap-3">
+
+    <div
+      className="
+        flex items-center
+        justify-between gap-2
+      "
+    >
+
+     <input
+  className="
+    w-full bg-surface border
+    border-outline-variant
+    rounded-lg p-2
+    focus:ring-primary
+    focus:border-primary
+    text-body-md
+  "
+  placeholder="0.00"
+  type="number"
+  step="0.01"
+  min="0"
+  value={minPrice}
+  onChange={(e) =>
+    setMinPrice(
+      e.target.value.replace(
+        ",",
+        "."
+      )
+    )
+  }
+/>
+
+      <span
+        className="text-stone-400"
+      >
+        —
+      </span>
+
+      <input
+        className="
+          w-full bg-surface border
+          border-outline-variant
+          rounded-lg p-2
+          focus:ring-primary
+          focus:border-primary
+          text-body-md
+        "
+        placeholder="9999.99"
+        type="number"
+        step="0.01"
+        min="0"
+        value={maxPrice}
+        onChange={(e) =>
+          setMaxPrice(
+            e.target.value.replace(
+        ",",
+        "."
+      )
+          )
+        }
+      />
+
+    </div>
+
+    <button
+      onClick={handlePriceFilter}
+      className="
+        w-full bg-primary text-white
+        py-3 rounded-lg font-bold
+        hover:bg-opacity-90
+        transition-colors
+      "
+    >
+      Apply Filters
+    </button>
+
+  </div>
+
+</div>
+
+<div className="space-y-1">
+
+  {categories.map((category) => (
+
+    <button
+      key={category.id}
+      onClick={() =>
+        handleCategoryClick(
+          category.id
+        )
+      }
+      className={`
+        w-full flex items-center
+        gap-3 p-3 rounded-lg
+        transition-all duration-300
+        text-left
+
+        ${
+          selectedCategoryId ===
+          category.id
+
+            ? `
+              text-[#D4A373]
+              bg-surface-container
+              font-bold
+            `
+
+            : `
+              text-stone-600
+              dark:text-stone-400
+              hover:bg-stone-50
+              dark:hover:bg-stone-900
+              hover:pl-2
+            `
+        }
+      `}
+    >
+
+      <span
+        className="
+          material-symbols-outlined
+        "
+      >
+        restaurant_menu
+      </span>
+
+      <span className="text-sm">
+
+        {category.name}
+
+      </span>
+
+    </button>
+
+  ))}
+
+</div>
           </div>
         </aside>
 
@@ -460,7 +787,7 @@ const totalQuantity =
 
           {/* Food Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {menuItems.map((item) => (
+            {paginatedItems.map((item) => (
               <article
                 onClick={() => openDetails(item.id)}
                 key={item.id}
@@ -491,7 +818,14 @@ const totalQuantity =
                     {item.shortDescription}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="font-price-label text-price-label text-primary">{item.price}</span>
+
+ <span className="font-price-label text-price-label text-primary">
+  {item?.price != null
+    ? `$${Number(item.price).toFixed(2)}`
+    : "$0.00"}
+</span>
+
+                    
                     <button onClick={(e) => {
   e.stopPropagation();
   addToCart(item);
@@ -506,38 +840,184 @@ const totalQuantity =
           </div>
 
           {/* Pagination Bar */}
-          <div className="mt-12 py-8 border-t border-stone-100 flex flex-col md:flex-row items-center justify-between gap-6 text-on-surface-variant">
-            <div className="flex items-center gap-4">
-              <span className="text-label-sm uppercase tracking-widest font-bold">Items per page</span>
-              <select className="bg-surface border border-outline-variant rounded-lg px-3 py-1 text-label-sm">
-                <option>12</option>
-                <option>24</option>
-                <option>48</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white font-bold">
-                1
-              </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
-                2
-              </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
-                3
-              </button>
-              <span className="px-2">...</span>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
-                8
-              </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-            </div>
-            <div className="text-label-sm">Showing 1-6 of 48 dishes</div>
-          </div>
+
+<div
+  className="
+    mt-12 py-8 border-t
+    border-stone-100 flex
+    flex-col md:flex-row
+    items-center justify-between
+    gap-6 text-on-surface-variant
+  "
+>
+
+  <div className="text-label-sm">
+
+    Showing{" "}
+
+    {
+      paginatedItems?.length === 0
+        ? 0
+        : (
+            (
+              currentPage - 1
+            ) * itemsPerPage
+          ) + 1
+    }
+
+    -
+
+    {
+      Math.min(
+        currentPage *
+        itemsPerPage,
+
+        totalItems || 0
+      )
+    }
+
+    {" "}of{" "}
+
+    {totalItems || 0}
+
+    dishes
+
+  </div>
+
+  <div
+    className="
+      flex items-center gap-2
+    "
+  >
+
+    <button
+      disabled={
+        currentPage <= 1
+      }
+      onClick={() =>
+        setCurrentPage(
+          (prev) =>
+            Math.max(
+              prev - 1,
+              1
+            )
+        )
+      }
+      className="
+        w-10 h-10 flex
+        items-center
+        justify-center
+        rounded-full
+        hover:bg-surface-container
+        transition-colors
+        disabled:opacity-40
+      "
+    >
+
+      <span
+        className="
+          material-symbols-outlined
+        "
+      >
+        chevron_left
+      </span>
+
+    </button>
+
+    {
+
+      Array.from({
+
+        length: Number.isFinite(
+          totalPages
+        )
+          ? totalPages
+          : 0
+
+      }).map((_, index) => {
+
+        const page =
+          index + 1;
+
+        return (
+
+          <button
+            key={page}
+            onClick={() =>
+              setCurrentPage(
+                page
+              )
+            }
+            className={`
+              w-10 h-10 flex
+              items-center
+              justify-center
+              rounded-full
+              transition-colors
+
+              ${
+                currentPage === page
+
+                  ? `
+                    bg-primary
+                    text-white
+                    font-bold
+                  `
+
+                  : `
+                    hover:bg-surface-container
+                  `
+              }
+            `}
+          >
+
+            {page}
+
+          </button>
+
+        );
+      })
+
+    }
+
+    <button
+      disabled={
+        currentPage >=
+        totalPages
+      }
+      onClick={() =>
+        setCurrentPage(
+          (prev) =>
+            Math.min(
+              prev + 1,
+              totalPages
+            )
+        )
+      }
+      className="
+        w-10 h-10 flex
+        items-center
+        justify-center
+        rounded-full
+        hover:bg-surface-container
+        transition-colors
+        disabled:opacity-40
+      "
+    >
+
+      <span
+        className="
+          material-symbols-outlined
+        "
+      >
+        chevron_right
+      </span>
+
+    </button>
+
+  </div>
+
+</div>
         </main>
       </div>
 

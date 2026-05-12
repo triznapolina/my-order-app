@@ -31,7 +31,15 @@ export default function DigitalBistroSignIn() {
         throw new Error('Access token missing from login response.');
       }
 
-      localStorage.setItem('token', accessToken);
+      localStorage.setItem(
+  'token',
+  accessToken
+);
+
+localStorage.setItem(
+  'refreshToken',
+  loginResponse?.data?.refreshToken
+);
 
       const roleResponse = await authService.extractRole(accessToken);
       const roleData = roleResponse?.data;
@@ -40,7 +48,7 @@ export default function DigitalBistroSignIn() {
       if (role === 'ROLE_ADMIN') {
         window.location.href = '/admin-orders';
       } else {
-        window.location.href = '/user-info';
+        window.location.href = '/client-catalog';
       }
     } catch (error) {
       console.error('Ошибка авторизации или получения роли:', error);

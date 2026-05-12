@@ -10,14 +10,181 @@ const api = axios.create({
 
 api.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+
+    if (config.url.includes('/auth/token')) {
+
+      delete config.headers.Authorization;
+
+      return config;
     }
+
+    const token =
+      localStorage.getItem('token');
+
+    if (token) {
+
+      config.headers.Authorization =
+        `Bearer ${token}`;
+    }
+
     return config;
   },
+
   error => Promise.reject(error)
 );
+
+api.interceptors.response.use(
+
+  response => response,
+
+  async error => {
+
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/token')
+    ) {
+
+      originalRequest._retry = true;
+
+      try {
+
+        const refreshToken =
+          localStorage.getItem('refreshToken');
+
+        if (!refreshToken) {
+
+          showSessionExpiredModal();
+
+          return Promise.reject(error);
+        }
+
+        const response =
+          await authService.getNewToken({
+            refreshToken
+          });
+
+        const newAccessToken =
+          response.data.accessToken;
+
+        localStorage.setItem(
+          'token',
+          newAccessToken
+        );
+
+        api.defaults.headers.common.Authorization =
+          `Bearer ${newAccessToken}`;
+
+        originalRequest.headers.Authorization =
+          `Bearer ${newAccessToken}`;
+
+        return api(originalRequest);
+
+      } catch (refreshError) {
+
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+
+        showSessionExpiredModal();
+
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+function showSessionExpiredModal() {
+
+  if (
+    document.getElementById(
+      'session-expired-modal'
+    )
+  ) {
+    return;
+  }
+
+  const modal =
+    document.createElement('div');
+
+  modal.id = 'session-expired-modal';
+
+  modal.innerHTML = `
+    <div
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 24px;
+          border-radius: 12px;
+          width: 320px;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        "
+      >
+        <h3
+          style="
+            margin-bottom: 16px;
+            font-size: 18px;
+          "
+        >
+          Сессия завершена
+        </h3>
+
+        <p
+          style="
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+          "
+        >
+          Ваше время пребывания на страницах
+          веб-приложения подошло к концу.
+          Чтобы продлить сессию,
+          необходимо авторизоваться.
+        </p>
+
+        <button
+          id="go-login-btn"
+          style="
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: black;
+            color: white;
+          "
+        >
+          Авторизоваться
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document
+    .getElementById('go-login-btn')
+    .addEventListener('click', () => {
+
+      window.location.href = '/login';
+    });
+}
 
 export const authService = {
   register: (data) => api.post('/auth/register', data),
@@ -26,6 +193,8 @@ export const authService = {
   getUserInfo: (token) => api.get(`/auth/user-info`, token),
   extractRole: (token) => api.get(`/auth/role?token=${encodeURIComponent(token)}`),
   extractId: (id) => api.get(`/auth/client/id?token=${encodeURIComponent(token)}`),
+  getNewToken: (data) => { return api.post('/auth/token', data);},
+
 };
 
 export const userService = {
@@ -60,10 +229,32 @@ export const foodService = {
     });
   },
 
-  updateFood: (foodId, food) => {
-      return api.put(`/catalog/foods/${foodId}`, food);
-    
-  },
+  updateFood: (foodId, food, image) => {
+
+    const formData = new FormData();
+
+    formData.append(
+        "food",
+        new Blob(
+            [JSON.stringify(food)],
+            { type: "application/json" }
+        )
+    );
+
+    if (image) {
+        formData.append("image", image);
+    }
+
+    return api.put(
+        `/catalog/foods/${foodId}`,
+        formData,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        }
+    );
+},
 
   deleteFood: (foodId) =>
     api.delete(`/catalog/foods/${foodId}`),
@@ -98,6 +289,22 @@ export const foodService = {
     api.get("/catalog/foods/price", {
       params: { minRange, maxRange },
     }),
+
+  getByCategoryAndPriceRange: (
+  categoryId,
+  minRange,
+  maxRange
+) =>
+  api.get(
+    "/catalog/filter-by-category/price",
+    {
+      params: {
+        categoryId,
+        minRange,
+        maxRange,
+      },
+    }
+  ),  
 
   getImage: (id) =>
     api.get(`/catalog/images/${id}`, {
@@ -158,9 +365,33 @@ export const orderService = {
     api.get(`/orders/client/${clientId}`),
 
   cancelOrder: (id, type) =>
-    api.patch(`/orders/${id}/cancel`, null, {
-      params: { type },
-    }),
+  api.patch(`/orders/${id}/ready`, {}, {
+    params: {
+      type: Boolean(type),
+    },
+  }),
+
+ getOrdersByStatus: (clientId,status) =>
+  api.get(
+    `/orders/status/${clientId}`,
+    {
+      params: {
+        status: String(status),
+      },
+    }
+  ),
+
+
+  setIsDeleted: (id, status) =>
+  api.patch(
+    `/orders/${id}/deleted`,
+    null,
+    {
+      params: {
+        status,
+      },
+    }
+  ),
 
   updateStatus: (id, status) =>
     api.patch(`/orders/${id}/status`, null, {
@@ -172,6 +403,14 @@ export const orderService = {
 
   getAllOrders: (filterRequest) =>
     api.post("/orders/filter", filterRequest),
+
+   filterOrders: (params) =>
+    api.get("/orders/filter", {
+      params,
+    }),
+
+  getNonCompletedByClient: (clientId) =>
+  api.get(`/orders/client/non-completed/${clientId}`),
 };
 
 
@@ -185,10 +424,10 @@ export const orderItemService = {
     return api.put('/order-items', data);
   },
 
-  deleteItem: (id) => api.delete(`/order-items/${id}`),
+  deleteItem: (orderId, foodId) => { api.delete(`/order-items/delete/${orderId}`,{ params: { foodId } } ); },
 
   getItem: (id) => {
-    return axios.get('/order-items/${id}', getAuthConfig());
+     api.get(`/order-items/${id}`);
   },
 };
 
@@ -227,6 +466,9 @@ export const paymentService = {
 
   getByOrderId: (orderId) =>
     api.get(`/payments/${orderId}`),  
+
+   getById: (id) =>
+    api.get(`/payments/by/${id}`),  
 
 };
 
